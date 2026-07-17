@@ -124,15 +124,15 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Welcome Hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-950 p-8 shadow-xl">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-violet-600/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-950 p-8 shadow-xl">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-violet-600/5 dark:bg-violet-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-indigo-600/5 dark:bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
         
         <div className="max-w-2xl space-y-4">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white bg-clip-text text-transparent bg-gradient-to-r from-zinc-50 via-zinc-100 to-zinc-300">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-zinc-50 dark:via-zinc-100 dark:to-zinc-300">
             Understand your repository, instantly.
           </h2>
-          <p className="text-sm text-zinc-400 leading-relaxed">
+          <p className="text-sm text-zinc-650 dark:text-zinc-400 leading-relaxed">
             Repollama uses local semantic analysis, Git history mining, and custom embeddings to construct a local knowledge graph of your project. Select a repository to begin parsing.
           </p>
           
@@ -149,11 +149,11 @@ export const Dashboard: React.FC = () => {
               disabled={!repoPath || isAnalyzing}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all duration-200 cursor-pointer ${
                 !repoPath || isAnalyzing
-                  ? "bg-zinc-900/40 text-zinc-600 border-zinc-950 cursor-not-allowed"
-                  : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border-zinc-850 hover:border-zinc-700"
+                  ? "bg-zinc-100 text-zinc-400 border-zinc-200 dark:bg-zinc-900/40 dark:text-zinc-600 dark:border-zinc-950 cursor-not-allowed"
+                  : "bg-white hover:bg-zinc-100 text-zinc-700 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-850 dark:hover:border-zinc-700"
               }`}
             >
-              <RefreshCw className={`w-4 h-4 ${isAnalyzing ? "animate-spin text-violet-400" : "text-zinc-500"}`} />
+              <RefreshCw className={`w-4 h-4 ${isAnalyzing ? "animate-spin text-violet-400" : "text-zinc-500 dark:text-zinc-400"}`} />
               <span>Rescan Directory</span>
             </button>
           </div>
@@ -161,10 +161,10 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Repository Selection and Analysis Controls */}
-      <div className="border border-zinc-900 rounded-xl bg-zinc-950/20 p-6 space-y-6">
-        <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
-          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-            <Terminal className="w-4 h-4 text-violet-400" />
+      <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl bg-zinc-100/10 dark:bg-zinc-950/20 p-6 space-y-6">
+        <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-900 pb-4">
+          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+            <Terminal className="w-4 h-4 text-violet-500 dark:text-violet-400" />
             <span>Repository Analysis Control</span>
           </h3>
           {isAnalyzing && (
@@ -177,20 +177,20 @@ export const Dashboard: React.FC = () => {
 
         <div className="flex flex-col md:flex-row gap-4 items-end">
           <div className="flex-1 w-full space-y-2">
-            <label className="text-xs font-medium text-zinc-400">Repository Path</label>
+            <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Repository Path</label>
             <div className="flex gap-2">
               <input
                 type="text"
                 readOnly
                 value={repoPath}
                 placeholder="No repository selected"
-                className="flex-1 px-4 py-2.5 bg-zinc-950/80 border border-zinc-900 text-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50 placeholder-zinc-600 font-mono"
+                className="flex-1 px-4 py-2.5 bg-white dark:bg-zinc-950/80 border border-zinc-200 dark:border-zinc-900 text-zinc-800 dark:text-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50 placeholder-zinc-400 dark:placeholder-zinc-600 font-mono"
               />
               <button
                 onClick={handleSelectDirectory}
-                className="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-lg text-sm font-medium border border-zinc-850 hover:border-zinc-700 transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95"
+                className="px-4 py-2.5 bg-white hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95"
               >
-                <FolderOpen className="w-4 h-4 text-zinc-500" />
+                <FolderOpen className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                 <span>Browse...</span>
               </button>
             </div>
@@ -200,7 +200,7 @@ export const Dashboard: React.FC = () => {
             {isAnalyzing ? (
               <button
                 onClick={handleCancelAnalysis}
-                className="flex-1 md:flex-initial px-6 py-2.5 bg-red-950/30 hover:bg-red-900/40 text-red-400 rounded-lg text-sm font-semibold border border-red-900/30 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                className="flex-1 md:flex-initial px-6 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg text-sm font-semibold border border-red-200 dark:border-red-900/30 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 <XCircle className="w-4 h-4" />
                 <span>Cancel</span>
@@ -211,7 +211,7 @@ export const Dashboard: React.FC = () => {
                 disabled={!repoPath || isAnalyzing}
                 className={`flex-1 md:flex-initial px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md ${
                   !repoPath || isAnalyzing
-                    ? "bg-zinc-900/50 text-zinc-600 border border-zinc-950 cursor-not-allowed shadow-none"
+                    ? "bg-zinc-100 text-zinc-400 border border-zinc-200 dark:bg-zinc-900/50 dark:text-zinc-600 dark:border-zinc-950 cursor-not-allowed shadow-none"
                     : "bg-violet-600 hover:bg-violet-500 text-white shadow-violet-600/10 active:scale-95"
                 }`}
               >
@@ -224,8 +224,8 @@ export const Dashboard: React.FC = () => {
 
         {/* Live Execution Logs Terminal */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-zinc-400 block">Live Execution Logs</label>
-          <div className="h-64 rounded-lg bg-black/70 border border-zinc-900 p-4 font-mono text-xs text-zinc-400 overflow-y-auto flex flex-col space-y-1 scrollbar-thin">
+          <label className="text-xs font-medium text-zinc-505 dark:text-zinc-400 block">Live Execution Logs</label>
+          <div className="h-64 rounded-lg bg-zinc-955 dark:bg-black/70 border border-zinc-200 dark:border-zinc-900 p-4 font-mono text-xs text-zinc-300 dark:text-zinc-400 overflow-y-auto flex flex-col space-y-1 scrollbar-thin">
             {logs.length === 0 ? (
               <div className="text-zinc-700 italic">No logs received yet. Select a repository and start analysis.</div>
             ) : (
@@ -258,35 +258,35 @@ export const Dashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-xl border border-zinc-900 bg-zinc-950/40 space-y-4 hover:border-zinc-800/80 transition-all duration-200">
+        <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950/40 space-y-4 hover:border-zinc-300 dark:hover:border-zinc-800/80 transition-all duration-200 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider">AST Entities</span>
-            <Cpu className="w-4 h-4 text-violet-400" />
+            <Cpu className="w-4 h-4 text-violet-500 dark:text-violet-400" />
           </div>
           <div>
-            <div className="text-2xl font-bold text-zinc-100">{astEntities}</div>
+            <div className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">{astEntities}</div>
             <p className="text-xs text-zinc-500 mt-1">Classes, functions & modules</p>
           </div>
         </div>
 
-        <div className="p-6 rounded-xl border border-zinc-900 bg-zinc-950/40 space-y-4 hover:border-zinc-800/80 transition-all duration-200">
+        <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950/40 space-y-4 hover:border-zinc-300 dark:hover:border-zinc-800/80 transition-all duration-200 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Git Miner Metrics</span>
-            <GitCommit className="w-4 h-4 text-indigo-400" />
+            <GitCommit className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
           </div>
           <div>
-            <div className="text-2xl font-bold text-zinc-100">{commitsParsed}</div>
+            <div className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">{commitsParsed}</div>
             <p className="text-xs text-zinc-500 mt-1">Parsed file churn & contributions</p>
           </div>
         </div>
 
-        <div className="p-6 rounded-xl border border-zinc-900 bg-zinc-950/40 space-y-4 hover:border-zinc-800/80 transition-all duration-200">
+        <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950/40 space-y-4 hover:border-zinc-300 dark:hover:border-zinc-800/80 transition-all duration-200 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Vector Storage</span>
-            <Database className="w-4 h-4 text-emerald-400" />
+            <Database className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
           </div>
           <div>
-            <div className="text-2xl font-bold text-zinc-100">{vectorStorage}</div>
+            <div className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">{vectorStorage}</div>
             <p className="text-xs text-zinc-500 mt-1">{vectorStorageSub}</p>
           </div>
         </div>
@@ -295,65 +295,65 @@ export const Dashboard: React.FC = () => {
       {/* Main Grid: Recent Scans / System Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* System Status Panel */}
-        <div className="lg:col-span-2 border border-zinc-900 rounded-xl bg-zinc-950/20 p-6 space-y-6">
-          <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
-            <h3 className="text-sm font-semibold text-zinc-200">Index System Status</h3>
-            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+        <div className="lg:col-span-2 border border-zinc-200 dark:border-zinc-900 rounded-xl bg-zinc-100/10 dark:bg-zinc-950/20 p-6 space-y-6">
+          <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-900 pb-4">
+            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Index System Status</h3>
+            <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
               Operational
             </span>
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3.5 bg-zinc-950/40 rounded-lg border border-zinc-900">
+            <div className="flex items-center justify-between p-3.5 bg-white dark:bg-zinc-950/40 rounded-lg border border-zinc-200 dark:border-zinc-900 shadow-sm">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
                 <div>
-                  <h4 className="text-xs font-medium text-zinc-200">AST Parser (Tree-sitter)</h4>
+                  <h4 className="text-xs font-medium text-zinc-800 dark:text-zinc-200">AST Parser (Tree-sitter)</h4>
                   <p className="text-[10px] text-zinc-500">Deterministically mapped dependencies</p>
                 </div>
               </div>
-              <span className="text-xs font-mono text-zinc-400">v1.0.0</span>
+              <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">v1.0.0</span>
             </div>
 
-            <div className="flex items-center justify-between p-3.5 bg-zinc-950/40 rounded-lg border border-zinc-900">
+            <div className="flex items-center justify-between p-3.5 bg-white dark:bg-zinc-950/40 rounded-lg border border-zinc-200 dark:border-zinc-900 shadow-sm">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
                 <div>
-                  <h4 className="text-xs font-medium text-zinc-200">Git Miner Engine</h4>
+                  <h4 className="text-xs font-medium text-zinc-800 dark:text-zinc-200">Git Miner Engine</h4>
                   <p className="text-[10px] text-zinc-500">Calculated file churn and developers history</p>
                 </div>
               </div>
-              <span className="text-xs font-mono text-zinc-400">Active</span>
+              <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">Active</span>
             </div>
 
-            <div className="flex items-center justify-between p-3.5 bg-zinc-950/40 rounded-lg border border-zinc-900">
+            <div className="flex items-center justify-between p-3.5 bg-white dark:bg-zinc-950/40 rounded-lg border border-zinc-200 dark:border-zinc-900 shadow-sm">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
                 <div>
-                  <h4 className="text-xs font-medium text-zinc-200">Graph Builder (NetworkX)</h4>
+                  <h4 className="text-xs font-medium text-zinc-800 dark:text-zinc-200">Graph Builder (NetworkX)</h4>
                   <p className="text-[10px] text-zinc-500">Entity linkages and structural index loaded</p>
                 </div>
               </div>
-              <span className="text-xs font-mono text-zinc-400">Ready</span>
+              <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">Ready</span>
             </div>
           </div>
         </div>
 
         {/* Recent Scans Panel */}
-        <div className="border border-zinc-900 rounded-xl bg-zinc-950/20 p-6 space-y-6">
-          <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
-            <h3 className="text-sm font-semibold text-zinc-200">Recent Tasks</h3>
+        <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl bg-zinc-100/10 dark:bg-zinc-950/20 p-6 space-y-6">
+          <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-900 pb-4">
+            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Recent Tasks</h3>
             <span className="text-[10px] font-mono text-zinc-500">Active History</span>
           </div>
 
           <div className="space-y-4">
             <div className="flex gap-3">
-              <div className="w-7 h-7 rounded bg-zinc-900 flex items-center justify-center border border-zinc-800 text-zinc-400 flex-shrink-0">
+              <div className="w-7 h-7 rounded bg-zinc-200 dark:bg-zinc-900 flex items-center justify-center border border-zinc-300 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 flex-shrink-0">
                 <Search className="w-3.5 h-3.5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-zinc-200 truncate">Semantics indexed</p>
+                  <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">Semantics indexed</p>
                   <span className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
                     <Clock className="w-3 h-3" /> 2m ago
                   </span>
@@ -363,12 +363,12 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="flex gap-3">
-              <div className="w-7 h-7 rounded bg-zinc-900 flex items-center justify-center border border-zinc-800 text-zinc-400 flex-shrink-0">
+              <div className="w-7 h-7 rounded bg-zinc-200 dark:bg-zinc-900 flex items-center justify-center border border-zinc-300 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 flex-shrink-0">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-zinc-200 truncate">Git log extracted</p>
+                  <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">Git log extracted</p>
                   <span className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
                     <Clock className="w-3 h-3" /> 10m ago
                   </span>
@@ -378,12 +378,12 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="flex gap-3">
-              <div className="w-7 h-7 rounded bg-zinc-900 flex items-center justify-center border border-zinc-800 text-zinc-400 flex-shrink-0">
+              <div className="w-7 h-7 rounded bg-zinc-200 dark:bg-zinc-900 flex items-center justify-center border border-zinc-300 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 flex-shrink-0">
                 <Database className="w-3.5 h-3.5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-zinc-200 truncate">Vectors loaded</p>
+                  <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">Vectors loaded</p>
                   <span className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
                     <Clock className="w-3 h-3" /> 1h ago
                   </span>
