@@ -1,6 +1,6 @@
 # Repollama 🦙🔍
 
-Repollama is a private, local-first repository intelligence and codebase indexing platform. It allows developers to analyze, visualize, and query codebases completely offline. By combining deterministic Abstract Syntax Tree (AST) parsing, Git history mining, local vector database storage, and private LLMs via Ollama, Repollama builds a comprehensive knowledge graph and semantic search index of any repository.
+Repollama is a local-first, privacy-focused repository intelligence and codebase indexing platform. It allows developers to analyze, visualize, and query codebases completely offline. By combining deterministic Abstract Syntax Tree (AST) parsing, Git history mining, local vector database storage, and private LLMs via Ollama, Repollama builds a comprehensive knowledge graph and semantic search index of any repository.
 
 ---
 
