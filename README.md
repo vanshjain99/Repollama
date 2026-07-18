@@ -14,6 +14,30 @@ Modern software development relies heavily on third-party cloud-based AI tools f
 
 ---
 
+## 💡 Key Use Cases
+
+Repollama is designed to address a variety of developer and enterprise needs:
+
+1. **🔒 Secure & Air-Gapped Code Understanding**
+   Analyze proprietary or highly confidential codebases without exposing intellectual property to third-party cloud services. Perfect for finance, healthcare, defense, or any environment with strict data residency requirements.
+
+2. **✈️ Offline Code Exploration**
+   Continue coding, searching, and querying codebase structures and logic when internet connectivity is limited or unavailable (e.g., during travel or in remote areas).
+
+3. **🕸️ Architectural & Impact Analysis**
+   Use the deterministic Abstract Syntax Tree (AST) knowledge graph to map references, imports, and dependencies. Understand how refactoring a class or function will impact the rest of the system before writing code.
+
+4. **📈 Code Churn & Hotspot Identification**
+   Combine Git commit logs with syntax structures to find high-churn files (files that change frequently) and complex modules. Helps team leads identify technical debt and prioritize code refactoring.
+
+5. **🔍 Semantic Code Search**
+   Locate relevant functions, classes, and logic blocks using natural language descriptions (e.g., *"Find where we handle JWT token expiration"*) rather than relying on brittle keyword-based `grep` or regex searches.
+
+6. **🎒 Automated Developer Onboarding**
+   Generate structural walkthroughs and explanations of code repositories, helping new developers understand the architecture and quickly become productive with local LLM assistance.
+
+---
+
 ## 🛠️ What has been Built So Far
 
 Repollama is divided into a headless Python backend core and a Tauri desktop frontend. Here is a breakdown of the architecture and features implemented:
