@@ -38,6 +38,18 @@ Repollama is designed to address a variety of developer and enterprise needs:
 
 ---
 
+## 👥 Target Audience
+
+Repollama is built for:
+
+- **🔒 Enterprise & DevSecOps Teams**: Organizations in highly regulated industries (e.g., Fintech, Healthtech, Government/Defense) requiring strictly audited, zero-data-leakage AI development tools.
+- **💻 Privacy-First Software Engineers**: Developers who prefer keeping their codebase analysis, vector database, and inference models entirely on local hardware.
+- **✈️ Remote & Offline Developers**: Engineers working in low-bandwidth, high-latency, or completely disconnected environments (e.g., flights, trains, remote sites).
+- **🕸️ Software Architects & Tech Leads**: Technical leaders looking to visualize codebases, inspect module dependencies, analyze code churn, and streamline developer onboarding.
+- **🛠️ Open-Source Enthusiasts**: Builders who want to leverage open-weights models (via Ollama) without relying on expensive monthly SaaS API subscriptions.
+
+---
+
 ## 🛠️ What has been Built So Far
 
 Repollama is divided into a headless Python backend core and a Tauri desktop frontend. Here is a breakdown of the architecture and features implemented:
