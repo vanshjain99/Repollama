@@ -16,25 +16,23 @@ Modern software development relies heavily on third-party cloud-based AI tools f
 
 ## 💡 Key Use Cases
 
-Repollama is designed to address a variety of developer and enterprise needs:
+Repollama's use cases map directly to the core pillars of its agenda:
 
-1. **🔒 Secure & Air-Gapped Code Understanding**
-   Analyze proprietary or highly confidential codebases without exposing intellectual property to third-party cloud services. Perfect for finance, healthcare, defense, or any environment with strict data residency requirements.
+### 1. 🔒 Privacy-First Code Intelligence (Total Privacy)
+- **Air-Gapped Analysis**: Query proprietary or sensitive codebases completely offline. Ideal for security-critical environments (defense, banking, healthtech) where sending code to cloud AI APIs is prohibited.
+- **Local LLM Chat & Q&A**: Chat with your local codebase using offline models like Llama 3, Mistral, or Qwen (via Ollama), ensuring zero data telemetry or IP exposure.
 
-2. **✈️ Offline Code Exploration**
-   Continue coding, searching, and querying codebase structures and logic when internet connectivity is limited or unavailable (e.g., during travel or in remote areas).
+### 2. 🕸️ AST & Semantic Navigation (Deep Semantic & Structural Indexing)
+- **Structural Impact Analysis**: Use AST knowledge graphs to understand code references, class inheritance, and module imports, helping developers map out refactoring changes before executing them.
+- **Natural Language Code Search**: Perform semantic queries (e.g., *"Find where user authentication tokens are signed"*) instead of relying on rigid keyword-based grep.
 
-3. **🕸️ Architectural & Impact Analysis**
-   Use the deterministic Abstract Syntax Tree (AST) knowledge graph to map references, imports, and dependencies. Understand how refactoring a class or function will impact the rest of the system before writing code.
+### 3. 📈 Git-History & Health Metrics (Temporal Context)
+- **Technical Debt & Hotspot Auditing**: Trace code evolution using Git metadata and file churn analysis to find highly modified files or complex modules that are prone to bugs.
+- **Ownership & Team Alignment**: Assess code ownership, authorship history, and developer contribution patterns over time to streamline knowledge transfer and team collaboration.
 
-4. **📈 Code Churn & Hotspot Identification**
-   Combine Git commit logs with syntax structures to find high-churn files (files that change frequently) and complex modules. Helps team leads identify technical debt and prioritize code refactoring.
-
-5. **🔍 Semantic Code Search**
-   Locate relevant functions, classes, and logic blocks using natural language descriptions (e.g., *"Find where we handle JWT token expiration"*) rather than relying on brittle keyword-based `grep` or regex searches.
-
-6. **🎒 Automated Developer Onboarding**
-   Generate structural walkthroughs and explanations of code repositories, helping new developers understand the architecture and quickly become productive with local LLM assistance.
+### 4. 🎛️ Unified Code Workspace (Intuitive UI)
+- **Local Repository Cockpit**: A single desktop interface to select folders, watch indexing logs stream in real-time, visualize workspace statistics (AST nodes, commits, embeddings), and query files interactively.
+- **Configurable Search & Chat Interface**: Easily toggle between different local LLM models and indexing options through a user-friendly UI without needing complex CLI commands.
 
 ---
 
