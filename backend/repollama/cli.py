@@ -642,18 +642,16 @@ def browse_cmd(
                 traffic_table = Table(title="Intercepted API Traffic (Fetch/XHR)")
                 traffic_table.add_column("Method", style="bold cyan")
                 traffic_table.add_column("Resource Type", style="magenta")
-                traffic_table.add_column("Status", style="green", justify="right")
                 traffic_table.add_column("URL", style="yellow")
 
                 for item in network_traffic:
-                    status_str = str(item["status"]) if item["status"] is not None else "Pending"
                     url_str = item["url"]
                     if len(url_str) > 60:
                         url_str = url_str[:57] + "..."
-                    traffic_table.add_row(item["method"], item["resource_type"], status_str, url_str)
+                    traffic_table.add_row(item["method"], item["resource_type"], url_str)
                 console.print(traffic_table)
             else:
-                console.print("\n[dim italic]No API traffic (fetch/xhr) was intercepted.[/dim italic]")
+                console.print("\n[bold yellow]No API traffic detected[/bold yellow]")
 
             # Print screenshot path
             abs_screenshot_path = os.path.abspath(screenshot_path)
@@ -771,6 +769,8 @@ def record_cmd(
         asyncio.run(run_record())
     except typer.Exit:
         raise
+    except Exception as e:
+        console.print(f"[bold red]An error occurred during recording execution:[/bold red] {e}")
         raise typer.Exit(code=1)
 
 
@@ -1015,7 +1015,7 @@ def debt_cmd(
 
 @app.command(name="scan")
 def scan_cmd(
-    repo_path: str = typer.Argument(".", help="Path to the target repository to scan"),
+    repo_path: str = typer.Argument(..., help="Path to the repository to scan"),
 ) -> None:
     """Scan the codebase for security threats and performance bottlenecks."""
     async def run_scan_flow() -> None:
@@ -1093,7 +1093,7 @@ def scan_cmd(
         # Run PerformanceAuditor
         performance_auditor = PerformanceAuditor(file_contents=file_contents)
         performance_flags = performance_auditor.detect_anti_patterns(ast_data)
-        performance_flags.sort(key=lambda x: (x.get("file", ""), x.get("target", ""), x.get("issue", "")))
+        performance_flags.sort(key=lambda x: (x.get("file", ""), x.get("target_function", ""), x.get("issue", "")))
 
         # Print Table 1: Security Threat Report
         # Columns: File, Issue, Severity, Line/Target
@@ -1141,7 +1141,7 @@ def scan_cmd(
             else:
                 sev_display = sev_val
 
-            target_val = flag.get("target", "")
+            target_val = flag.get("target_function", "")
 
             perf_table.add_row(file_val, issue_val, sev_display, target_val)
 
@@ -1243,6 +1243,8 @@ def docs_cmd(
         ast_classes: list[dict[str, Any]] = []
         total_files = 0
         detected_languages: set[str] = set()
+        file_contents: dict[str, str] = {}
+        ast_data: list[dict[str, Any]] = []
 
         # Define excluded directories
         exclude_dirs = {
@@ -1271,9 +1273,19 @@ def docs_cmd(
 
                 file_path_str = str(relative_path)
                 try:
+                    # Read content for secret scanning and LLM context
+                    with open(path_obj, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
+                    file_contents[file_path_str] = content
+
                     ast_meta = parser.parse_file(path_obj)
                     total_files += 1
                     detected_languages.add(ast_meta.language)
+
+                    # Populate AST data for auditors
+                    ast_dict = ast_meta.model_dump()
+                    ast_dict["file_path"] = file_path_str
+                    ast_data.append(ast_dict)
 
                     # Populate the Knowledge Graph builder to get realistic stats
                     graph_builder.add_file_node(file_path_str, {"language": ast_meta.language})
@@ -1298,6 +1310,43 @@ def docs_cmd(
 
         # Compute stats
         graph_stats = graph_builder.get_graph_stats()
+
+        # Run security and performance audits to provide audit data
+        audit_stats: dict[str, Any] = {}
+        try:
+            from repollama.engines.security_auditor import SecurityAuditor
+            from repollama.engines.performance_auditor import PerformanceAuditor
+
+            security_auditor = SecurityAuditor()
+            secrets_flags = security_auditor.scan_secrets(file_contents)
+            crypto_flags = security_auditor.scan_weak_crypto(ast_data)
+            security_flags = secrets_flags + crypto_flags
+
+            performance_auditor = PerformanceAuditor(file_contents=file_contents)
+            performance_flags = performance_auditor.detect_anti_patterns(ast_data)
+
+            audit_stats = {
+                "total_security_issues": len(security_flags),
+                "total_performance_issues": len(performance_flags),
+                "security_issues": [
+                    {
+                        "file": flag.get("file"),
+                        "line": flag.get("line"),
+                        "issue": flag.get("issue"),
+                        "severity": flag.get("severity")
+                    } for flag in security_flags
+                ],
+                "performance_issues": [
+                    {
+                        "file": flag.get("file"),
+                        "target_function": flag.get("target_function"),
+                        "issue": flag.get("issue"),
+                        "severity": flag.get("severity")
+                    } for flag in performance_flags
+                ]
+            }
+        except Exception as e:
+            console.print(f"[yellow]Warning:[/yellow] Failed to run security/performance audits: {e}")
 
         # 2. Run DiagramGenerator and save files
         try:
@@ -1348,7 +1397,8 @@ def docs_cmd(
                         "graph_nodes": graph_stats.get("node_count", 0),
                         "graph_edges": graph_stats.get("edge_count", 0),
                         "detected_languages": list(detected_languages),
-                    }
+                    },
+                    "audit_stats": audit_stats
                 }
 
                 agent = DocumentationAgent(ollama_manager=ollama_mgr, model=model)

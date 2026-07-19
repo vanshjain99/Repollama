@@ -207,7 +207,7 @@ class BrowserAgent:
 
         return {
             "action": text_to_click,
-            "traffic": list(self.network_traffic),
+            "traffic": self.network_traffic,
         }
 
     async def record_workflow(self, actions_to_click: list[str], output_filename: str) -> str:

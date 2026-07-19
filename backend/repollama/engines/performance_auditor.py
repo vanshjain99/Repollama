@@ -60,8 +60,9 @@ class PerformanceAuditor:
                     flags.append({
                         "file": file_path,
                         "issue": f"Bloated function ({span} lines)",
-                        "severity": "Medium",
-                        "target": name
+                        "severity": "Low",
+                        "target": name,
+                        "target_function": name
                     })
 
                 # 2. N+1 query loop detection
@@ -73,14 +74,17 @@ class PerformanceAuditor:
                         flags.append({
                             "file": file_path,
                             "issue": "Potential N+1 query loop",
-                            "severity": "High",
-                            "target": name
+                            "severity": "Medium",
+                            "target": name,
+                            "target_function": name
                         })
 
         return flags
 
     def _has_n1_query(self, lines: list[str], language: str) -> bool:
         """Scan function body lines to detect database or HTTP requests inside loop blocks.
+
+        Also flags if the function contains `await` and also DB/ORM query method calls.
 
         Args:
             lines: List of raw string lines for the function body.
@@ -89,7 +93,13 @@ class PerformanceAuditor:
         Returns:
             bool: True if an N+1 query pattern is found, False otherwise.
         """
-        orm_methods = [".find(", ".select(", ".query(", ".execute("]
+        orm_methods = [".find(", ".select(", ".query("]
+
+        # Check if the function contains await AND an ORM query method call
+        has_await = any("await " in line for line in lines)
+        has_orm = any(any(method in line for method in orm_methods) for line in lines)
+        if has_await and has_orm:
+            return True
 
         if language == "python":
             in_loop = False

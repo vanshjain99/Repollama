@@ -39,6 +39,10 @@ class SecurityAuditor:
         for file_path, content in file_contents.items():
             lines = content.splitlines()
             for line_idx, line in enumerate(lines, start=1):
+                # Ignore common false-positives (e.g. getenv, environ, process.env, config retrievals)
+                if any(fp in line for fp in ["getenv(", "environ.get(", "environ[", "process.env", "config.get(", "config("]):
+                    continue
+
                 match = secret_pattern.search(line)
                 if match:
                     secret_val = match.group(3)

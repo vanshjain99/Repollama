@@ -128,7 +128,8 @@ def test_performance_auditor_bloated_functions() -> None:
     assert flags[0]["file"] == "src/utils.py"
     assert "Bloated function" in flags[0]["issue"]
     assert flags[0]["target"] == "bloated_func"
-    assert flags[0]["severity"] == "Medium"
+    assert flags[0]["target_function"] == "bloated_func"
+    assert flags[0]["severity"] == "Low"
 
 
 def test_performance_auditor_n1_queries_python() -> None:
@@ -238,3 +239,46 @@ def test_performance_auditor_n1_queries_javascript() -> None:
     assert len(n1_flags) == 2
     assert n1_flags[0]["file"] == "src/users.js"
     assert n1_flags[1]["file"] == "src/posts.ts"
+    assert n1_flags[0]["target_function"] == "processUsers"
+    assert n1_flags[1]["target_function"] == "processPosts"
+
+
+def test_performance_auditor_n1_queries_await_outside_loop() -> None:
+    file_contents = {
+        "src/await_query.py": (
+            "async def get_details(user_id):\n"
+            "    user = await db.find(user_id)\n" # contains find + await, flag!
+            "    return user\n"
+        ),
+        "src/await_no_query.py": (
+            "async def get_details(user_id):\n"
+            "    user = await get_user(user_id)\n" # contains await but no query/find/select, ok
+            "    return user\n"
+        )
+    }
+    
+    auditor = PerformanceAuditor(file_contents=file_contents)
+    
+    ast_data = [
+        {
+            "file_path": "src/await_query.py",
+            "language": "python",
+            "functions": [
+                {"name": "get_details", "start_line": 1, "end_line": 3}
+            ]
+        },
+        {
+            "file_path": "src/await_no_query.py",
+            "language": "python",
+            "functions": [
+                {"name": "get_details", "start_line": 1, "end_line": 3}
+            ]
+        }
+    ]
+    
+    flags = auditor.detect_anti_patterns(ast_data)
+    n1_flags = [f for f in flags if "N+1" in f["issue"]]
+    assert len(n1_flags) == 1
+    assert n1_flags[0]["file"] == "src/await_query.py"
+    assert n1_flags[0]["target_function"] == "get_details"
+    assert n1_flags[0]["severity"] == "Medium"

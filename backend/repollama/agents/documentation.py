@@ -9,16 +9,16 @@ class DocumentationAgent(BaseAgent):
         """Analyze the repository metadata and return the generated wiki documentation.
 
         Args:
-            context: Dictionary containing 'repo_stats' key with repository information.
+            context: Dictionary containing repository metadata (Graph & Audit data).
 
         Returns:
             str: Generated Markdown documentation.
         """
-        repo_stats = context.get("repo_stats", {})
         prompt = (
-            "You are an expert Technical Writer. Your task is to write a comprehensive, "
-            "production-grade system documentation (README.md/WIKI) for the repository based on the following statistics:\n"
-            f"{repo_stats}\n\n"
+            "You are an expert Technical Writer. Your task is to write a 3-section README.md "
+            "(Introduction, Architecture, Getting Started) based on the provided repository metadata context "
+            "(including Graph/Audit data if available):\n"
+            f"{context}\n\n"
             "The documentation must contain exactly the following three sections:\n"
             "1. Introduction: A clear explanation of what the system does, its goals, and target audience.\n"
             "2. Architecture: An overview of the system structure, design patterns, and internal components.\n"

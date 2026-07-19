@@ -66,14 +66,14 @@ Repollama builds a deep lexical and semantic understanding of your code without 
 Repollama goes beyond static analysis to see how your application actually behaves at runtime:
 * **Docker Sandboxing**: Ephemerally spins up application stacks inside isolated containers using the Python Docker SDK.
 * **Playwright Browser Agent**: Automates UI navigation, finding interactive elements, taking screenshots, and recording video walkthroughs (`.webm`).
-* **Sequence Tracing**: Intercepts HTTP/XHR traffic during browser actions and dynamically generates Mermaid sequence diagrams mapping API traffic.
+* **Sequence Tracing**: Intercepts HTTP/XHR traffic during browser actions (filtering out non-API assets like images to keep logs clean) and dynamically generates Mermaid sequence diagrams mapping API traffic.
 
 ### 3. 🧠 Phase 3: Engineering Intelligence
 A private, cooperative AI brain orchestrates reviews, documentation, and audits:
 * **Multi-Agent Framework**: Coordinates local LLMs (via Ollama) executing roles for a **Principal Architect**, **Security Auditor**, and a self-reflecting **Reviewer Agent**.
 * **Technical Debt Auditor**: Ranks files by risk using a metric combining graph coupling, code complexity, and Git churn.
-* **Security & Performance Auditor**: Runs AST-based scans for hardcoded secrets, weak cryptography, and runtime performance bottlenecks.
-* **Auto-Documentation**: Generates pristine C4 system diagrams, Entity-Relationship Diagrams (ERDs), and comprehensive repository wikis automatically.
+* **Security & Performance Auditor**: Runs AST-based scans for secrets (filtering common false-positives like environment/config variables), weak cryptography, and performance bottlenecks (such as bloated functions, DB/ORM query loops, or async query operations outside of explicit loop structures).
+* **Auto-Documentation**: Generates pristine C4 system diagrams, Entity-Relationship Diagrams (ERDs), and comprehensive repository wikis automatically, dynamically enriched with integrated security and performance audit statistics.
 
 ### 4. 🛡️ Phase 4: Enterprise Intelligence
 Built for team collaboration, scale, and compliance governance:
@@ -101,7 +101,7 @@ Repollama features a full-featured Typer CLI (`repollama`) with interactive Rich
 | `record` | `<url>` `<actions>` | Executes a comma-separated list of clicks and records the interaction as a `.webm` walkthrough video. |
 | `audit` | None | Runs the local AI Multi-Agent Coordinator to audit system architecture and security. |
 | `debt` | `[repo_path]` | Analyzes the repo and outputs a styled console heatmap ranking files by technical debt risk. |
-| `scan` | `[repo_path]` | Scans for security vulnerabilities (e.g., weak crypto, exposed secrets) and performance bottlenecks. |
+| `scan` | `<repo_path>` | Scans for security vulnerabilities (e.g., weak crypto, exposed secrets) and performance bottlenecks. |
 | `drift` | `[repo_path]` [-b base] [-t target] | Compares imports/dependencies between two commit hashes to check for architectural drift. |
 | `docs` | `<repo_path>` | Generates automated C4 system diagrams, database ERDs, and wiki documentation. |
 | `watch` | `[repo_path]` | Starts the file watcher daemon to update the knowledge graph incrementally using SHA-256 caching. |
@@ -174,7 +174,7 @@ Repollama maintains an impeccable test suite validating all ingestion streams, p
 To run all unit and integration tests:
 ```bash
 cd backend
-poetry run pytest
+PYTHONPATH=. .venv/bin/pytest
 ```
 
-**Status**: `86/86 Passing Tests` ✅
+**Status**: `95/95 Passing Tests` ✅

@@ -183,6 +183,19 @@ async def test_browser_agent_network_traffic() -> None:
             assert traffic[0]["post_data"] == '{"key": "val"}'
             assert traffic[0]["status"] is None
 
+            # Simulate a request event that should be filtered out (e.g. image)
+            mock_img_request = MagicMock()
+            mock_img_request.url = "http://example.com/assets/logo.png"
+            mock_img_request.method = "GET"
+            mock_img_request.resource_type = "image"
+            mock_img_request.post_data = None
+
+            callbacks["request"](mock_img_request)
+
+            # Check traffic length remains 1
+            traffic = agent.get_network_traffic()
+            assert len(traffic) == 1
+
             # Simulate response event matching URL
             mock_response = MagicMock()
             mock_response.url = "http://example.com/api/data"
@@ -195,6 +208,19 @@ async def test_browser_agent_network_traffic() -> None:
             traffic = agent.get_network_traffic()
             assert len(traffic) == 1
             assert traffic[0]["status"] == 200
+
+            # Simulate response event for filtered out request
+            mock_img_response = MagicMock()
+            mock_img_response.url = "http://example.com/assets/logo.png"
+            mock_img_response.status = 200
+            mock_img_response.request = mock_img_request
+
+            callbacks["response"](mock_img_response)
+
+            # Check traffic length still remains 1
+            traffic = agent.get_network_traffic()
+            assert len(traffic) == 1
+            assert traffic[0]["url"] == "http://example.com/api/data"
 
 
 @pytest.mark.anyio

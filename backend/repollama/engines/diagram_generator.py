@@ -7,7 +7,7 @@ class DiagramGenerator:
     """Generates Mermaid diagrams (C4 Context, ERD) from repository metadata."""
 
     @staticmethod
-    def generate_c4_context(graph_stats: dict[str, Any]) -> str:
+    def generate_c4_context(graph_stats: dict) -> str:
         """Takes basic graph statistics or nodes and returns a valid Mermaid C4 Context diagram string.
 
         Args:
@@ -28,7 +28,7 @@ class DiagramGenerator:
         )
 
     @staticmethod
-    def generate_erd(ast_classes: list[dict[str, Any]]) -> str:
+    def generate_erd(ast_classes: list[dict]) -> str:
         """Takes a list of extracted classes from the ASTParser and returns a valid Mermaid ER Diagram string.
 
         Args:
