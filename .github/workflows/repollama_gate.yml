@@ -1,0 +1,33 @@
+name: Repollama CI Gate
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  repollama-gate:
+    name: Repollama Quality & Architecture Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for diff/drift check
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f pyproject.toml ]; then pip install .; fi
+          # Ensure repollama CLI is installed/available
+          pip install git+https://github.com/vanshjain99/Repollama.git || true
+
+      - name: Run Repollama CI Check
+        run: |
+          # Run the quality gate check comparing base commit to target PR head
+          repollama ci-check . --base ${{ github.event.pull_request.base.sha }} --target ${{ github.event.pull_request.head.sha }}

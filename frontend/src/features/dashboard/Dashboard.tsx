@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   FolderOpen,
   RefreshCw,
@@ -12,22 +12,24 @@ import {
   Play,
   XCircle
 } from "lucide-react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { useAnalysis } from "../../context/AnalysisContext";
 
 export const Dashboard: React.FC = () => {
-  const [repoPath, setRepoPath] = useState<string>("");
-  const [logs, setLogs] = useState<string[]>([]);
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-  
-  // Dashboard stats from stream completion
-  const [astEntities, setAstEntities] = useState<string>("1,248");
-  const commitsParsed = "432 commits";
-  const [vectorStorage, setVectorStorage] = useState<string>("ChromaDB Ready");
-
-  const [vectorStorageSub, setVectorStorageSub] = useState<string>("3,490 document chunk embeddings");
+  const {
+    repoPath,
+    logs,
+    isAnalyzing,
+    astEntities,
+    commitsParsed,
+    vectorStorage,
+    vectorStorageSub,
+    recentTasks,
+    handleSelectDirectory,
+    handleStartAnalysis,
+    handleCancelAnalysis
+  } = useAnalysis();
 
   const logsEndRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Auto-scroll logs terminal to bottom
   useEffect(() => {
@@ -36,89 +38,23 @@ export const Dashboard: React.FC = () => {
     }
   }, [logs]);
 
-  // Clean up EventSource connection on unmount
+  // Periodic tick to refresh relative times
+  const [, setTimeTick] = React.useState(0);
   useEffect(() => {
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
+    const timer = setInterval(() => {
+      setTimeTick((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(timer);
   }, []);
 
-  const handleSelectDirectory = async () => {
-    try {
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title: "Select Repository Workspace",
-      });
-      if (selected) {
-        const path = Array.isArray(selected) ? selected[0] : selected;
-        setRepoPath(path);
-        // Clear old logs when a new path is selected
-        setLogs([]);
-      }
-    } catch (err) {
-      console.error("Failed to select directory:", err);
-      setLogs((prev) => [...prev, `[System] Error: Failed to open directory picker: ${err}`]);
-    }
-  };
-
-  const handleStartAnalysis = () => {
-    if (!repoPath || isAnalyzing) return;
-
-    setIsAnalyzing(true);
-    setLogs([`[System] Connecting to analysis pipeline...`]);
-
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    const sseUrl = `http://localhost:8000/api/v1/analyze/stream?path=${encodeURIComponent(repoPath)}`;
-    const eventSource = new EventSource(sseUrl);
-    eventSourceRef.current = eventSource;
-
-    eventSource.onmessage = (event) => {
-      const logMsg = event.data;
-      setLogs((prev) => [...prev, logMsg]);
-
-      // Dynamic stats extraction on analysis complete
-      if (logMsg.startsWith("[System] Analysis complete.")) {
-        const match = logMsg.match(/Nodes:\s*(\d+),\s*Edges:\s*(\d+),\s*Collection Size:\s*(\d+)/);
-        if (match) {
-          const nodes = parseInt(match[1], 10);
-          const collectionSize = parseInt(match[3], 10);
-
-          setAstEntities(nodes.toLocaleString());
-          setVectorStorage("Active");
-          setVectorStorageSub(`${collectionSize.toLocaleString()} document chunk embeddings`);
-        }
-      }
-
-      if (logMsg === "[Pipeline] Analysis Complete!") {
-        eventSource.close();
-        setIsAnalyzing(false);
-      }
-    };
-
-    eventSource.onerror = (err) => {
-      console.error("EventSource error:", err);
-      setLogs((prev) => [
-        ...prev,
-        `[System] Error: Connection lost or failed to start stream.`
-      ]);
-      eventSource.close();
-      setIsAnalyzing(false);
-    };
-  };
-
-  const handleCancelAnalysis = () => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-    setIsAnalyzing(false);
-    setLogs((prev) => [...prev, `[System] Warning: Analysis canceled by user.`]);
+  const formatRelativeTime = (timestamp: number) => {
+    const diffMs = Date.now() - timestamp;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
   };
 
   return (
@@ -347,50 +283,30 @@ export const Dashboard: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="flex gap-3">
-              <div className="w-7 h-7 rounded bg-zinc-200 dark:bg-zinc-900 flex items-center justify-center border border-zinc-300 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 flex-shrink-0">
-                <Search className="w-3.5 h-3.5" />
+            {recentTasks.length === 0 ? (
+              <div className="text-zinc-500 italic text-xs py-4 text-center">
+                No tasks run yet. Select a repository and start analysis to see history.
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">Semantics indexed</p>
-                  <span className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
-                    <Clock className="w-3 h-3" /> 2m ago
-                  </span>
+            ) : (
+              recentTasks.map((task) => (
+                <div key={task.id} className="flex gap-3">
+                  <div className="w-7 h-7 rounded bg-zinc-200 dark:bg-zinc-900 flex items-center justify-center border border-zinc-300 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 flex-shrink-0">
+                    {task.type === "ast" && <Search className="w-3.5 h-3.5" />}
+                    {task.type === "git" && <GitCommit className="w-3.5 h-3.5" />}
+                    {task.type === "vector" && <Database className="w-3.5 h-3.5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">{task.title}</p>
+                      <span className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
+                        <Clock className="w-3 h-3" /> {formatRelativeTime(task.timestamp)}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 truncate" title={task.subtitle}>{task.subtitle}</p>
+                  </div>
                 </div>
-                <p className="text-[10px] text-zinc-500 truncate">/repollama-workspace</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="w-7 h-7 rounded bg-zinc-200 dark:bg-zinc-900 flex items-center justify-center border border-zinc-300 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 flex-shrink-0">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">Git log extracted</p>
-                  <span className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
-                    <Clock className="w-3 h-3" /> 10m ago
-                  </span>
-                </div>
-                <p className="text-[10px] text-zinc-500 truncate">Commit log mining done</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="w-7 h-7 rounded bg-zinc-200 dark:bg-zinc-900 flex items-center justify-center border border-zinc-300 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 flex-shrink-0">
-                <Database className="w-3.5 h-3.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">Vectors loaded</p>
-                  <span className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
-                    <Clock className="w-3 h-3" /> 1h ago
-                  </span>
-                </div>
-                <p className="text-[10px] text-zinc-500 truncate">ChromaDB initialized</p>
-              </div>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </div>

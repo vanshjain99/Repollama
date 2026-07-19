@@ -144,6 +144,33 @@ class ASTParser:
 
         return self.parse_content(source_code, lang_name, str(path))
 
+    def parse_raw(self, content: bytes | str, extension: str) -> dict:
+        """Parse raw content from memory using file extension.
+
+        Args:
+            content (bytes | str): The source code content.
+            extension (str): The file extension (e.g., '.py', '.ts').
+
+        Returns:
+            dict: The dictionary representation of ASTMetadata.
+
+        Raises:
+            UnsupportedLanguageError: If the extension is not supported.
+        """
+        lang_name = self.get_language_from_extension(extension)
+        if not lang_name:
+            raise UnsupportedLanguageError(
+                f"Unsupported file extension '{extension}' for raw content parsing."
+            )
+
+        if isinstance(content, str):
+            content_bytes = content.encode("utf-8")
+        else:
+            content_bytes = content
+
+        metadata = self.parse_content(content_bytes, lang_name, "")
+        return metadata.model_dump()
+
     def parse_content(self, source_code: bytes, lang_name: str, file_path: str = "") -> ASTMetadata:
         """Parse source code content directly from bytes and run queries to extract symbols.
 

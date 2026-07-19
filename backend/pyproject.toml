@@ -22,6 +22,12 @@ gitpython = "^3.1.43"
 networkx = "^3.0"
 chromadb = "^0.5.0"
 sse-starlette = "^1.8.2"
+docker = "^7.0.0"
+playwright = "^1.42.0"
+watchdog = "^4.0.0"
+
+
+
 
 
 

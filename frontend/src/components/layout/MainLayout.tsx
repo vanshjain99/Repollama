@@ -10,6 +10,7 @@ import {
   Sun,
   Moon
 } from "lucide-react";
+import { useAnalysis } from "../../context/AnalysisContext";
 
 interface SidebarItemProps {
   to: string;
@@ -36,6 +37,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon, label }) => {
 };
 
 export const MainLayout: React.FC = () => {
+  const { repoPath } = useAnalysis();
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     return (localStorage.getItem("theme") as "light" | "dark") || "light";
   });
@@ -122,7 +124,7 @@ export const MainLayout: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-zinc-500">Workspace:</span>
             <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 bg-zinc-200 dark:bg-zinc-900 px-2 py-0.5 rounded border border-zinc-300 dark:border-zinc-800">
-              /repollama-workspace
+              {repoPath || "No repository selected"}
             </span>
           </div>
           <div className="flex items-center gap-4">

@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # Default model to use for local LLM operations
-    DEFAULT_MODEL: str = "qwen2.5-coder"
+    DEFAULT_MODEL: str = "qwen2.5-coder:1.5b"
 
     # Host and port configuration for running the FastAPI application
     API_HOST: str = "127.0.0.1"

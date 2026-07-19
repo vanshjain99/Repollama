@@ -1,4 +1,9 @@
+from __future__ import annotations
 import httpx
+
+# Fallback URL tried when the primary base_url fails to connect.
+# Handles environments where "localhost" resolves differently (e.g. inside Tauri).
+_FALLBACK_URL = "http://127.0.0.1:11434"
 
 
 class OllamaManager:
@@ -10,7 +15,15 @@ class OllamaManager:
         Args:
             base_url: The absolute base URL of the Ollama server.
         """
-        self.base_url = base_url.rstrip("/")
+        self._base_url = base_url.rstrip("/")
+
+    @property
+    def base_url(self) -> str:
+        return self._base_url
+
+    @base_url.setter
+    def base_url(self, value: str) -> None:
+        self._base_url = value.rstrip("/")
 
     async def ping_server(self) -> bool:
         """Pings the Ollama server to verify it is reachable.
@@ -73,31 +86,50 @@ class OllamaManager:
                 f"Ollama connection error during model pull: {e}"
             ) from e
 
-    async def generate(self, prompt: str, model: str) -> str:
+    async def generate(self, prompt: str, model: str, timeout: float | None = 300.0) -> str:
         """Basic text generation using the Ollama API.
+
+        Automatically retries on the 127.0.0.1 fallback URL if the primary
+        address fails with a connection error (handles localhost DNS quirks
+        inside the Tauri desktop runtime).
 
         Args:
             prompt: Prompt string.
             model: The name of the model to generate with.
+            timeout: Request timeout in seconds. Defaults to 300.0.
 
         Returns:
             str: Generated text.
         """
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/api/generate",
-                    json={"model": model, "prompt": prompt, "stream": False},
-                )
-                if response.status_code == 200:
-                    return response.json().get("response", "")
-                else:
-                    raise httpx.HTTPStatusError(
-                        f"Ollama generation failed with status code {response.status_code}",
-                        request=response.request,
-                        response=response,
+        urls_to_try = [self._base_url]
+        if self._base_url != _FALLBACK_URL:
+            urls_to_try.append(_FALLBACK_URL)
+
+        last_error: Exception | None = None
+        for url in urls_to_try:
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    response = await client.post(
+                        f"{url}/api/generate",
+                        json={"model": model, "prompt": prompt, "stream": False},
                     )
-        except (httpx.ConnectError, httpx.HTTPError, httpx.TimeoutException) as e:
-            raise RuntimeError(
-                f"Ollama connection error during generation: {e}"
-            ) from e
+                    if response.status_code == 200:
+                        return response.json().get("response", "")
+                    else:
+                        raise httpx.HTTPStatusError(
+                            f"Ollama generation failed (status {response.status_code}) at {url}",
+                            request=response.request,
+                            response=response,
+                        )
+            except httpx.ConnectError as e:
+                last_error = e
+                continue  # Try next URL
+            except (httpx.HTTPError, httpx.TimeoutException) as e:
+                raise RuntimeError(
+                    f"Ollama HTTP/timeout error at {url}: {e}"
+                ) from e
+
+        raise RuntimeError(
+            f"Cannot connect to Ollama at {self._base_url} or fallback {_FALLBACK_URL}. "
+            "Ensure Ollama is running: `ollama serve`."
+        ) from last_error

@@ -67,3 +67,43 @@ def test_get_graph_stats():
     assert stats["node_count"] == 3
     # Edges: "file1.py" -> "file1.py::func1" (CONTAINS), "file1.py" -> "sys" (IMPORTS)
     assert stats["edge_count"] == 2
+
+
+def test_remove_file_subgraph():
+    builder = KnowledgeGraphBuilder()
+
+    # Setup: 2 files, one has functions/classes, one is imported.
+    builder.add_file_node("file1.py", {"language": "python"})
+    builder.add_code_node("ClassA", "class", "file1.py")
+    builder.add_code_node("func1", "function", "file1.py")
+    builder.add_import_edge("file1.py", "sys")
+    builder.add_import_edge("file1.py", "file2.py")
+
+    # file2.py exists and contains ClassB.
+    builder.add_file_node("file2.py", {"language": "python"})
+    builder.add_code_node("ClassB", "class", "file2.py")
+
+    stats = builder.get_graph_stats()
+    assert stats["node_count"] == 6
+    assert stats["edge_count"] == 5
+
+    # Act: remove file1.py's subgraph
+    builder.remove_file_subgraph("file1.py")
+
+    # Check updated stats
+    stats_after = builder.get_graph_stats()
+    assert stats_after["node_count"] == 3
+    assert not builder.graph.has_node("file1.py")
+    assert not builder.graph.has_node("file1.py::ClassA")
+    assert not builder.graph.has_node("file1.py::func1")
+    assert builder.graph.has_node("file2.py")
+    assert builder.graph.has_node("file2.py::ClassB")
+    assert builder.graph.has_node("sys")
+
+    assert stats_after["edge_count"] == 1
+    assert builder.graph.has_edge("file2.py", "file2.py::ClassB")
+
+    # Act: remove a non-existent file path should return gracefully
+    builder.remove_file_subgraph("non_existent.py")
+    assert builder.get_graph_stats() == stats_after
+
