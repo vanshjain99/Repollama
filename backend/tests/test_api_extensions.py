@@ -33,7 +33,7 @@ def test_get_graph_nonexistent():
     with patch("repollama.main.Path.exists", return_value=False):
         response = client.get("/api/v1/graph")
         assert response.status_code == 200
-        assert response.json() == {"nodes": [], "links": []}
+        assert response.json() == {"nodes": [], "links": [], "error": "Graph data not found. Run analysis first."}
 
 def test_get_graph_exists():
     client = TestClient(app)
@@ -49,7 +49,7 @@ def test_get_graph_exists():
             with patch("json.load", return_value=mock_data):
                 response = client.get("/api/v1/graph")
                 assert response.status_code == 200
-                assert response.json() == mock_data
+                assert response.json() == {**mock_data, "source_path": ".repollama_data/graph.json"}
 
 @patch("repollama.main.LocalVectorStore")
 @patch("repollama.main.ollama_manager.generate", new_callable=AsyncMock)
@@ -72,7 +72,7 @@ def test_chat_rag(mock_generate, mock_vector_store):
     assert data["response"] == "This is a mock response from Ollama."
     
     # Verify vector store query was called
-    mock_vs_instance.query_similar.assert_called_once_with("how does this work?", n_results=5)
+    mock_vs_instance.query_similar.assert_called_once_with("how does this work?", n_results=5, repo_path="")
     
     # Verify LLM generation was called with prompt and model
     mock_generate.assert_called_once()

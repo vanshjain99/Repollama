@@ -2,18 +2,25 @@ from __future__ import annotations
 import atexit
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import docker
 import docker.errors
+
+class StackInfo(TypedDict):
+    stack: str
+    start_scripts: list[str]
+    has_dockerfile: bool
+    has_docker_compose: bool
+    language: str
 
 class EnvironmentDetector:
     def __init__(self, repo_path: str | Path) -> None:
         self.repo_path = Path(repo_path).resolve()
 
-    def detect_stack(self) -> dict[str, Any]:
+    def detect_stack(self) -> StackInfo:
         """Detect the development stack, start scripts, and Docker configuration of the repository."""
-        stack_info = {
+        stack_info: StackInfo = {
             "stack": "unknown",
             "start_scripts": [],
             "has_dockerfile": False,
@@ -108,7 +115,7 @@ class DockerSandbox:
             self.client = docker.from_env()
             self.client.ping()
             self.is_available = True
-        except Exception:
+        except docker.errors.DockerException:
             self.client = None
             self.is_available = False
 
@@ -122,7 +129,7 @@ class DockerSandbox:
             except Exception:
                 pass
 
-    def start_sandbox(self, repo_path: str | Path, stack_info: dict[str, Any]) -> dict[str, Any]:
+    def start_sandbox(self, repo_path: str | Path, stack_info: StackInfo) -> dict[str, Any]:
         """Start a Docker container for the repository based on stack info.
 
         Returns:
@@ -175,7 +182,7 @@ class DockerSandbox:
         volumes = {
             repo_path_abs: {
                 "bind": "/app",
-                "mode": "rw",
+                "mode": "ro",
             }
         }
 

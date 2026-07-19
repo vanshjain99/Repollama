@@ -24,7 +24,7 @@ def test_add_document(mock_client):
     store = LocalVectorStore()
     store.add_document("doc_1", "print('hello')", {"language": "python"})
 
-    mock_collection.add.assert_called_once_with(
+    mock_collection.upsert.assert_called_once_with(
         ids=["doc_1"],
         documents=["print('hello')"],
         metadatas=[{"language": "python"}],

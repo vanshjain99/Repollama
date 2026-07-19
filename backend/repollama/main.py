@@ -1,6 +1,7 @@
+from __future__ import annotations
 import asyncio
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
@@ -201,7 +202,7 @@ from pydantic import BaseModel
 class ChatRequest(BaseModel):
     message: str
     model: str = "qwen2.5-coder:1.5b"
-    ollama_endpoint: str | None = None  # Optional per-request Ollama URL override
+    ollama_endpoint: Optional[str] = None  # Optional per-request Ollama URL override
     repo_path: str = ""  # Active repository path for RAG context isolation
 
 
