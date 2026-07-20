@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 
+export type AnalysisStatus = "Idle" | "Analyzing" | "Complete" | "Error";
+
 export interface RecentTask {
   id: string;
   title: string;
@@ -11,7 +13,11 @@ export interface RecentTask {
 
 interface AnalysisContextProps {
   repoPath: string;
+  setRepoPath: (path: string) => void;
+  analysisStatus: AnalysisStatus;
+  setAnalysisStatus: (status: AnalysisStatus) => void;
   logs: string[];
+  setLogs: React.Dispatch<React.SetStateAction<string[]>>;
   isAnalyzing: boolean;
   astEntities: string;
   commitsParsed: string;
@@ -19,7 +25,7 @@ interface AnalysisContextProps {
   vectorStorageSub: string;
   recentTasks: RecentTask[];
   handleSelectDirectory: () => Promise<void>;
-  handleStartAnalysis: () => void;
+  handleStartAnalysis: () => Promise<void>;
   handleCancelAnalysis: () => void;
   ollamaModel: string;
   setOllamaModel: (m: string) => void;
@@ -33,6 +39,8 @@ interface AnalysisContextProps {
   setChunkSize: (c: number) => void;
   incrementalCache: boolean;
   setIncrementalCache: (i: boolean) => void;
+  userRole: "Developer" | "Architect";
+  setUserRole: (role: "Developer" | "Architect") => void;
 }
 
 const AnalysisContext = createContext<AnalysisContextProps | undefined>(undefined);
@@ -41,6 +49,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [repoPath, setRepoPath] = useState<string>(() => {
     return localStorage.getItem("repollama_repo_path") || "";
   });
+  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("Idle");
   const [logs, setLogs] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem("repollama_logs");
@@ -90,8 +99,16 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [incrementalCache, setIncrementalCache] = useState<boolean>(() => {
     return localStorage.getItem("repollama_incremental_cache") !== "false";
   });
+  const [userRole, setUserRole] = useState<"Developer" | "Architect">(() => {
+    return (localStorage.getItem("repollama_user_role") as "Developer" | "Architect") || "Developer";
+  });
 
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Sync state with localStorage
+  useEffect(() => {
+    localStorage.setItem("repollama_user_role", userRole);
+  }, [userRole]);
 
   // Sync state with localStorage
   useEffect(() => {
@@ -153,7 +170,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem("repollama_incremental_cache", String(incrementalCache));
   }, [incrementalCache]);
 
-  // Clean up EventSource connection on unmount of the Provider (app shutdown)
+  // Clean up EventSource connection on unmount
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
@@ -173,18 +190,54 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const path = Array.isArray(selected) ? selected[0] : selected;
         setRepoPath(path);
         setLogs([]); // Clear logs when path changes
+        setAnalysisStatus("Idle");
       }
     } catch (err) {
       console.error("Failed to select directory:", err);
       setLogs((prev) => [...prev, `[System] Error: Failed to open directory picker: ${err}`]);
+      setAnalysisStatus("Error");
     }
   };
 
-  const handleStartAnalysis = () => {
+  const handleStartAnalysis = async () => {
     if (!repoPath || isAnalyzing) return;
 
     setIsAnalyzing(true);
-    setLogs([`[System] Connecting to analysis pipeline...`]);
+    setAnalysisStatus("Analyzing");
+    setLogs([`[System] Initializing analysis pipeline for workspace: ${repoPath}`]);
+
+    // Send POST /api/v1/analyze request to trigger MacroCompiler engine
+    try {
+      setLogs((prev) => [...prev, `[MacroCompiler] Triggering POST /api/v1/analyze...`]);
+      const res = await fetch("http://localhost:8000/api/v1/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: repoPath, repo_paths: [repoPath] }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setLogs((prev) => [
+          ...prev,
+          `[MacroCompiler] Initial compile result: ${data.message} (Nodes: ${data.nodes ?? 0}, Edges: ${data.edges ?? 0})`,
+        ]);
+      } else {
+        const errText = await res.text();
+        setLogs((prev) => [
+          ...prev,
+          `[System] Notice: POST /api/v1/analyze responded with status ${res.status}: ${errText}`,
+        ]);
+      }
+    } catch (err) {
+      console.warn("POST /api/v1/analyze request error:", err);
+      setLogs((prev) => [
+        ...prev,
+        `[System] Notice: MacroCompiler POST trigger returned: ${err}`,
+      ]);
+    }
+
+    // Connect to SSE log terminal stream
+    setLogs((prev) => [...prev, `[System] Subscribing to live SSE log stream (/api/v1/analyze/stream)...`]);
 
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -198,7 +251,11 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const logMsg = event.data;
       setLogs((prev) => [...prev, logMsg]);
 
-      // Dynamic stats extraction on analysis complete
+      if (logMsg.startsWith("[System] Error:")) {
+        setAnalysisStatus("Error");
+      }
+
+      // Extract stats upon analysis completion
       if (logMsg.startsWith("[System] Analysis complete.")) {
         const match = logMsg.match(/Nodes:\s*(\d+),\s*Edges:\s*(\d+),\s*Collection Size:\s*(\d+)(?:,\s*Commits:\s*(\d+))?/);
         if (match) {
@@ -216,7 +273,6 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           setVectorStorage(finalVS);
           setVectorStorageSub(finalVSSub);
 
-          // Populate recent tasks with the actual stats from this run
           const now = Date.now();
           const newTasks: RecentTask[] = [
             {
@@ -244,7 +300,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
           setRecentTasks((prev) => {
             const combined = [...newTasks, ...prev];
-            return combined.slice(0, 9); // Keep latest 9 tasks (3 runs)
+            return combined.slice(0, 9);
           });
         }
       }
@@ -252,6 +308,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (logMsg === "[Pipeline] Analysis Complete!") {
         eventSource.close();
         setIsAnalyzing(false);
+        setAnalysisStatus("Complete");
       }
     };
 
@@ -259,10 +316,11 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error("EventSource error:", err);
       setLogs((prev) => [
         ...prev,
-        `[System] Error: Connection lost or failed to start stream.`,
+        `[System] Error: Connection lost or failed to start log stream.`,
       ]);
       eventSource.close();
       setIsAnalyzing(false);
+      setAnalysisStatus("Error");
     };
   };
 
@@ -272,6 +330,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       eventSourceRef.current = null;
     }
     setIsAnalyzing(false);
+    setAnalysisStatus("Idle");
     setLogs((prev) => [...prev, `[System] Warning: Analysis canceled by user.`]);
   };
 
@@ -279,7 +338,11 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <AnalysisContext.Provider
       value={{
         repoPath,
+        setRepoPath,
+        analysisStatus,
+        setAnalysisStatus,
         logs,
+        setLogs,
         isAnalyzing,
         astEntities,
         commitsParsed,
@@ -301,6 +364,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setChunkSize,
         incrementalCache,
         setIncrementalCache,
+        userRole,
+        setUserRole,
       }}
     >
       {children}

@@ -5,6 +5,22 @@ import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+def test_health_endpoint():
+    client = TestClient(app)
+    with patch("repollama.main.ollama_manager.ping_server", new_callable=AsyncMock) as mock_ping, \
+         patch("docker.from_env") as mock_docker:
+        mock_ping.return_value = True
+        mock_docker_client = MagicMock()
+        mock_docker.return_value = mock_docker_client
+
+        response = client.get("/api/v1/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["backend"] is True
+        assert data["docker"] is True
+        assert data["ollama"] is True
+
 def test_get_settings():
     client = TestClient(app)
     response = client.get("/api/v1/settings")

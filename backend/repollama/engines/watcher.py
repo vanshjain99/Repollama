@@ -27,6 +27,7 @@ class RepoEventHandler(FileSystemEventHandler):
             "node_modules",
             "venv",
             ".venv",
+            "dist",
             "__pycache__",
             ".repollama_data",
             ".pytest_cache",

@@ -13,6 +13,11 @@ import {
   XCircle
 } from "lucide-react";
 import { useAnalysis } from "../../context/AnalysisContext";
+import { LogTerminal } from "../../components/terminal/LogTerminal";
+import { SandboxController } from "./components/SandboxController";
+import { WorkflowExplorer } from "./components/WorkflowExplorer";
+import { VideoPlayerGallery } from "./components/VideoPlayerGallery";
+import { EngineeringIntelligence } from "./components/EngineeringIntelligence";
 
 export const Dashboard: React.FC = () => {
   const {
@@ -160,35 +165,8 @@ export const Dashboard: React.FC = () => {
 
         {/* Live Execution Logs Terminal */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-zinc-505 dark:text-zinc-400 block">Live Execution Logs</label>
-          <div className="h-64 rounded-lg bg-zinc-955 dark:bg-black/70 border border-zinc-200 dark:border-zinc-900 p-4 font-mono text-xs text-zinc-300 dark:text-zinc-400 overflow-y-auto flex flex-col space-y-1 scrollbar-thin">
-            {logs.length === 0 ? (
-              <div className="text-zinc-700 italic">No logs received yet. Select a repository and start analysis.</div>
-            ) : (
-              logs.map((log, index) => {
-                let colorClass = "text-zinc-400";
-                if (log.startsWith("[System]")) {
-                  if (log.includes("Error")) {
-                    colorClass = "text-red-400 font-semibold bg-red-950/10 px-1 py-0.5 rounded";
-                  } else if (log.includes("Warning")) {
-                    colorClass = "text-yellow-400 font-semibold bg-yellow-950/10 px-1 py-0.5 rounded";
-                  } else {
-                    colorClass = "text-blue-400 font-semibold";
-                  }
-                } else if (log.startsWith("[AST]")) {
-                  colorClass = "text-emerald-400";
-                } else if (log.startsWith("[Pipeline]")) {
-                  colorClass = "text-violet-400 font-bold bg-violet-950/10 px-1 py-0.5 rounded";
-                }
-                return (
-                  <div key={index} className={`leading-relaxed whitespace-pre-wrap ${colorClass}`}>
-                    {log}
-                  </div>
-                );
-              })
-            )}
-            <div ref={logsEndRef} />
-          </div>
+          <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 block">Live Execution Logs</label>
+          <LogTerminal heightClass="h-72" />
         </div>
       </div>
 
@@ -227,6 +205,18 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Task 4: Engineering Intelligence Dashboard */}
+      <EngineeringIntelligence />
+
+      {/* Task 3: Sandbox Controller */}
+      <SandboxController />
+
+      {/* Task 3: Workflow Explorer & Sequence Diagrams */}
+      <WorkflowExplorer />
+
+      {/* Task 3: Video Player Gallery */}
+      <VideoPlayerGallery />
 
       {/* Main Grid: Recent Scans / System Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -28,8 +28,13 @@ def test_repo_event_handler_filtering():
     callback.assert_not_called()
     callback.reset_mock()
 
-    # 3. Excluded directory file modified (e.g. node_modules)
+    # 3. Excluded directory file modified (e.g. node_modules, dist)
     event = FileModifiedEvent("/workspace/myrepo/node_modules/lodash/index.js")
+    handler.on_modified(event)
+    callback.assert_not_called()
+    callback.reset_mock()
+
+    event = FileModifiedEvent("/workspace/myrepo/dist/bundle.js")
     handler.on_modified(event)
     callback.assert_not_called()
     callback.reset_mock()

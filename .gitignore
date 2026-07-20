@@ -31,8 +31,10 @@ frontend/dist/
 frontend/dist-ssr/
 *.local
 
-# Tauri build target
+# Tauri build target & sidecar binaries
 frontend/src-tauri/target/
+frontend/src-tauri/bin/
+
 
 # OS specific
 .DS_Store

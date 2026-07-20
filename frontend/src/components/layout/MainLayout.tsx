@@ -3,12 +3,14 @@ import { NavLink, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
   GitBranch,
+  Box,
   MessageSquare,
   Settings,
   Terminal,
   Activity,
   Sun,
-  Moon
+  Moon,
+  ShieldCheck
 } from "lucide-react";
 import { useAnalysis } from "../../context/AnalysisContext";
 
@@ -85,6 +87,16 @@ export const MainLayout: React.FC = () => {
             to="/architecture"
             icon={<GitBranch className="w-4.5 h-4.5" />}
             label="Architecture"
+          />
+          <SidebarItem
+            to="/sandbox"
+            icon={<Box className="w-4.5 h-4.5" />}
+            label="Sandbox & Workflows"
+          />
+          <SidebarItem
+            to="/governance"
+            icon={<ShieldCheck className="w-4.5 h-4.5" />}
+            label="Governance & CI/CD"
           />
           <SidebarItem
             to="/chat"

@@ -107,3 +107,26 @@ def test_remove_file_subgraph():
     builder.remove_file_subgraph("non_existent.py")
     assert builder.get_graph_stats() == stats_after
 
+
+def test_incremental_graph_patching():
+    builder = KnowledgeGraphBuilder()
+
+    # Initial state for file1.py: has old_func
+    builder.add_file_node("file1.py", {"language": "python"})
+    builder.add_code_node("old_func", "function", "file1.py")
+
+    assert builder.graph.has_node("file1.py::old_func")
+
+    # Patch file1.py: remove subgraph and re-add with new_func
+    builder.remove_file_subgraph("file1.py")
+    assert not builder.graph.has_node("file1.py::old_func")
+    assert not builder.graph.has_node("file1.py")
+
+    builder.add_file_node("file1.py", {"language": "python"})
+    builder.add_code_node("new_func", "function", "file1.py")
+
+    assert builder.graph.has_node("file1.py")
+    assert builder.graph.has_node("file1.py::new_func")
+    assert not builder.graph.has_node("file1.py::old_func")
+
+

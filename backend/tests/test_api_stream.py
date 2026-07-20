@@ -36,3 +36,28 @@ def test_analyze_stream_nonexistent_directory():
     content = response.text
     assert "Error: Target workspace does not exist" in content
     assert "[Pipeline] Analysis Complete!" in content
+
+
+def test_analyze_post_endpoint():
+    client = TestClient(app)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+        py_file = tmp_path / "app.py"
+        py_file.write_text("class Server:\n    pass\n")
+
+        response = client.post("/api/v1/analyze", json={"path": str(tmp_path), "repo_paths": [str(tmp_path)]})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert "nodes" in data
+        assert "edges" in data
+
+
+def test_analyze_post_no_path():
+    client = TestClient(app)
+    response = client.post("/api/v1/analyze", json={})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "error"
+    assert "No repository path provided" in data["message"]
+
