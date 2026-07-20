@@ -60,6 +60,7 @@ export const VideoPlayerGallery: React.FC = () => {
   };
 
   const formatFileSize = (bytes: number) => {
+    if (!bytes || bytes === 0) return "0 B";
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -113,7 +114,7 @@ export const VideoPlayerGallery: React.FC = () => {
               <div className="relative rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-lg group">
                 <video
                   ref={videoRef}
-                  src={`http://localhost:8000${selectedVideo.url}`}
+                  src={`http://localhost:8000/api/v1/videos/${selectedVideo.filename}`}
                   controls
                   className="w-full aspect-video object-contain"
                 />
@@ -158,7 +159,7 @@ export const VideoPlayerGallery: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <a
-                    href={`http://localhost:8000${selectedVideo.url}`}
+                    href={`http://localhost:8000/api/v1/videos/${selectedVideo.filename}`}
                     download={selectedVideo.filename}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-medium transition-colors"
                   >
@@ -175,7 +176,7 @@ export const VideoPlayerGallery: React.FC = () => {
               </div>
               <div>
                 <h4 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                  No Walkthrough Videos Found
+                  No workflow videos recorded yet.
                 </h4>
                 <p className="text-[11px] text-zinc-500 max-w-sm mt-1">
                   Recorded browser walkthrough videos saved in <code className="font-mono bg-zinc-200 dark:bg-zinc-800 px-1 py-0.5 rounded">.repollama_data/videos/</code> will automatically appear here.
@@ -200,7 +201,7 @@ export const VideoPlayerGallery: React.FC = () => {
             </div>
           ) : videos.length === 0 ? (
             <div className="p-4 text-center text-xs text-zinc-500 italic border border-zinc-200 dark:border-zinc-800 rounded-lg">
-              No .webm or .mp4 files in video folder.
+              No workflow videos recorded yet.
             </div>
           ) : (
             <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">

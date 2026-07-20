@@ -13,7 +13,6 @@ import {
   Search,
   Share2,
   RefreshCw,
-  AlertTriangle,
   ZoomIn,
   ZoomOut,
   Maximize2,
@@ -32,94 +31,6 @@ const nodeTypes = {
   customNode: CustomNode,
 };
 
-// Mock NetworkX Graph for Demo fallback
-const DEMO_GRAPH_DATA: NetworkXGraphData = {
-  nodes: [
-    {
-      id: "frontend/src/App.tsx",
-      name: "App.tsx",
-      type: "file",
-      language: "TypeScript",
-      relative_path: "frontend/src/App.tsx",
-      repo_name: "Repollama",
-    },
-    {
-      id: "backend/repollama/main.py",
-      name: "main.py",
-      type: "file",
-      language: "Python",
-      relative_path: "backend/repollama/main.py",
-      repo_name: "Repollama",
-    },
-    {
-      id: "backend/repollama/engines/macro_compiler.py",
-      name: "macro_compiler.py",
-      type: "file",
-      language: "Python",
-      relative_path: "backend/repollama/engines/macro_compiler.py",
-      repo_name: "Repollama",
-    },
-    {
-      id: "backend/repollama/engines/macro_compiler.py::MacroCompiler",
-      name: "MacroCompiler",
-      type: "class",
-      file_path: "backend/repollama/engines/macro_compiler.py",
-      repo_name: "Repollama",
-    },
-    {
-      id: "backend/repollama/engines/macro_compiler.py::compile",
-      name: "compile",
-      type: "function",
-      file_path: "backend/repollama/engines/macro_compiler.py",
-      repo_name: "Repollama",
-    },
-    {
-      id: "fastapi",
-      name: "fastapi",
-      type: "module",
-      repo_name: "Repollama",
-    },
-    {
-      id: "chromadb",
-      name: "chromadb",
-      type: "database",
-      repo_name: "Repollama",
-    },
-  ],
-  links: [
-    {
-      source: "frontend/src/App.tsx",
-      target: "backend/repollama/main.py",
-      type: "IMPORTS",
-    },
-    {
-      source: "backend/repollama/main.py",
-      target: "backend/repollama/engines/macro_compiler.py",
-      type: "IMPORTS",
-    },
-    {
-      source: "backend/repollama/main.py",
-      target: "fastapi",
-      type: "IMPORTS",
-    },
-    {
-      source: "backend/repollama/main.py",
-      target: "chromadb",
-      type: "IMPORTS",
-    },
-    {
-      source: "backend/repollama/engines/macro_compiler.py",
-      target: "backend/repollama/engines/macro_compiler.py::MacroCompiler",
-      type: "CONTAINS",
-    },
-    {
-      source: "backend/repollama/engines/macro_compiler.py",
-      target: "backend/repollama/engines/macro_compiler.py::compile",
-      type: "CONTAINS",
-    },
-  ],
-};
-
 function GraphFlowCanvas() {
   const { repoPath } = useAnalysis();
   const [nodes, setNodes, onNodesChange] = useNodesState<CustomNodeData>([]);
@@ -128,43 +39,41 @@ function GraphFlowCanvas() {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [graphData, setGraphData] = useState<NetworkXGraphData | null>(null);
 
   const { fitView, zoomIn, zoomOut } = useReactFlow();
 
   const fetchGraph = useCallback(async () => {
     setIsLoading(true);
-    setFetchError(null);
-    setIsDemo(false);
     try {
       const response = await fetch("http://localhost:8000/api/v1/graph");
       if (response.ok) {
         const data: NetworkXGraphData & { error?: string } = await response.json();
         if (data.error && (!data.nodes || data.nodes.length === 0)) {
-          setFetchError(data.error);
+          setGraphData(null);
           setNodes([]);
           setEdges([]);
         } else if (data.nodes && data.nodes.length > 0) {
+          setGraphData(data);
           const { nodes: rfNodes, edges: rfEdges } =
             transformNetworkXToReactFlow(data);
           setNodes(rfNodes);
           setEdges(rfEdges);
           setTimeout(() => fitView({ padding: 0.2 }), 100);
         } else {
+          setGraphData(null);
           setNodes([]);
           setEdges([]);
         }
       } else {
-        setFetchError(
-          `Backend returned HTTP ${response.status}. Ensure FastAPI server is running.`
-        );
+        setGraphData(null);
+        setNodes([]);
+        setEdges([]);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setFetchError(
-        `Cannot connect to backend: ${msg}. Start server: uvicorn repollama.main:app --reload`
-      );
+      setGraphData(null);
+      setNodes([]);
+      setEdges([]);
     } finally {
       setIsLoading(false);
     }
@@ -173,18 +82,6 @@ function GraphFlowCanvas() {
   useEffect(() => {
     fetchGraph();
   }, [repoPath, fetchGraph]);
-
-  const loadDemo = () => {
-    const { nodes: rfNodes, edges: rfEdges } =
-      transformNetworkXToReactFlow(DEMO_GRAPH_DATA);
-    setNodes(rfNodes);
-    setEdges(rfEdges);
-    setIsDemo(true);
-    setFetchError(null);
-    setIsLoading(false);
-    setSelectedNodeId("backend/repollama/engines/macro_compiler.py");
-    setTimeout(() => fitView({ padding: 0.2 }), 100);
-  };
 
   // Filter nodes & highlight matching ones
   const filteredNodes = useMemo(() => {
@@ -236,11 +133,6 @@ function GraphFlowCanvas() {
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
             <span>Interactive Knowledge Graph</span>
-            {isDemo && (
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded font-mono">
-                Demo Graph
-              </span>
-            )}
           </h2>
           <p className="text-xs text-zinc-500">
             NetworkX macro graph visualization powered by React Flow. Inspect files, classes, functions, and imports.
@@ -298,51 +190,17 @@ function GraphFlowCanvas() {
               <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin"></div>
               <span className="text-xs text-zinc-500">Loading NetworkX knowledge graph...</span>
             </div>
-          ) : fetchError ? (
-            <div className="text-center p-8 max-w-md space-y-4">
-              <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-200">
-                Knowledge Graph Not Available
-              </h3>
-              <p className="text-xs text-zinc-500 leading-relaxed font-mono bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-3 text-left">
-                {fetchError}
-              </p>
-              <div className="pt-2 flex justify-center gap-3">
-                <button
-                  onClick={fetchGraph}
-                  className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-semibold transition-all shadow-md shadow-violet-600/10 cursor-pointer flex items-center gap-2"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> Retry
-                </button>
-                <button
-                  onClick={loadDemo}
-                  className="px-4 py-2 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                >
-                  Load Demo Graph
-                </button>
-              </div>
-            </div>
-          ) : nodes.length === 0 ? (
+          ) : !graphData ? (
             <div className="text-center p-8 max-w-sm space-y-4">
               <div className="mx-auto w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 flex items-center justify-center shadow-sm">
                 <Share2 className="w-5 h-5" />
               </div>
               <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                Empty Knowledge Graph
+                No Architecture Data
               </h3>
               <p className="text-xs text-zinc-500 leading-relaxed">
-                Run repository analysis on the Dashboard to build and visualize the AST graph.
+                No architecture data available. Go to the Ingestion tab to scan a repository.
               </p>
-              <div className="pt-2 flex justify-center gap-3">
-                <button
-                  onClick={loadDemo}
-                  className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                >
-                  Load Demo Graph
-                </button>
-              </div>
             </div>
           ) : (
             <ReactFlow

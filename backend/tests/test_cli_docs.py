@@ -30,6 +30,13 @@ def test_cli_docs_command_success() -> None:
             # Execute command: repollama docs temp_test_repo
             result = runner.invoke(app, ["docs", "temp_test_repo"])
 
+            # Verify analyze was called with real context
+            mock_analyze.assert_called_once()
+            call_context = mock_analyze.call_args[0][0]
+            assert "repo_stats" in call_context
+            assert call_context["repo_stats"]["total_files"] >= 1
+            assert "total_directories" in call_context["repo_stats"]
+
             assert result.exit_code == 0
             assert "Developer Portal Artifacts Successfully Generated!" in result.output
             assert "ERD.md" in result.output

@@ -775,15 +775,30 @@ def record_cmd(
 
 
 @app.command(name="audit")
-def audit_cmd() -> None:
+def audit_cmd(
+    repo_path: str = typer.Argument(".", help="Path to the repository to audit"),
+) -> None:
     """Run an AI-driven multi-agent architecture and security audit on the codebase."""
     async def run_audit_flow() -> None:
+        from pathlib import Path
         from repollama.llm.ollama import OllamaManager
         from repollama.agents.coordinator import AgentCoordinator
+        from repollama.engines.sandbox import EnvironmentDetector
+        from repollama.engines.ast_parser import ASTParser
+        from repollama.engines.graph_builder import KnowledgeGraphBuilder
+        from repollama.engines.security_auditor import SecurityAuditor
+        from repollama.engines.performance_auditor import PerformanceAuditor
         from rich.panel import Panel
-        
+
+        target_dir = Path(repo_path).resolve()
+        if not target_dir.exists() or not target_dir.is_dir():
+            console.print(
+                f"[bold red]Error:[/bold red] Target directory does not exist or is not a directory: [yellow]{repo_path}[/yellow]"
+            )
+            raise typer.Exit(code=1)
+
         ollama_mgr = OllamaManager(base_url=settings.OLLAMA_BASE_URL)
-        
+
         # Verify Ollama is reachable
         is_up = await ollama_mgr.ping_server()
         if not is_up:
@@ -792,7 +807,7 @@ def audit_cmd() -> None:
             )
             console.print("Please start Ollama and make sure it is running before running an audit.")
             raise typer.Exit(code=1)
-            
+
         model = settings.DEFAULT_MODEL
         available_models = await ollama_mgr.list_models()
         if model not in available_models:
@@ -804,35 +819,104 @@ def audit_cmd() -> None:
                 console.print(f"[bold yellow]Warning:[/bold yellow] Default model '{settings.DEFAULT_MODEL}' was not found in your local Ollama instance.")
                 console.print(f"Available models: {available_models}")
                 console.print("We will attempt to proceed with the audit anyway, but it may fail if the model cannot be resolved.")
-            
-        # Create a mock context dictionary containing sample data
-        mock_context = {
-            "graph_stats": {
-                "nodes": 150,
-                "edges": 200,
-            },
-            "stack_info": {
-                "language": "Python",
-                "framework": "FastAPI",
-                "dependencies": ["uvicorn", "pydantic", "fastapi"]
-            },
-            "secrets_warnings": [
-                "Potential exposed API keys: secret_key missing in .env",
-                "No database password set in config"
-            ],
-            "network_traffic": [
-                {"url": "http://localhost:8000/api/v1/auth", "method": "POST", "status": 200}
-            ]
+
+        console.print(f"[bold blue]Building real context for repository at:[/bold blue] {target_dir}")
+
+        # 1. Environment Detection
+        detector = EnvironmentDetector(target_dir)
+        stack_info = detector.detect_stack()
+        secrets_info = detector.detect_secrets()
+
+        # 2. KnowledgeGraphBuilder & ASTParser
+        parser = ASTParser()
+        graph_builder = KnowledgeGraphBuilder(repo_name=target_dir.name)
+
+        exclude_dirs = {
+            ".git",
+            "node_modules",
+            "venv",
+            ".venv",
+            "__pycache__",
+            ".repollama_data",
+            ".pytest_cache",
+            ".mypy_cache",
         }
-        
+        supported_extensions = {".py", ".js", ".jsx", ".ts", ".tsx"}
+
+        file_contents: dict[str, str] = {}
+        ast_data: list[dict[str, Any]] = []
+
+        with console.status("[bold green]Analyzing repository AST and building Knowledge Graph...[/bold green]"):
+            for path_obj in target_dir.rglob("*"):
+                if not path_obj.is_file():
+                    continue
+
+                relative_path = path_obj.relative_to(target_dir)
+                if any(part in exclude_dirs for part in relative_path.parts):
+                    continue
+
+                if path_obj.suffix.lower() not in supported_extensions:
+                    continue
+
+                file_path_str = str(relative_path)
+                try:
+                    with open(path_obj, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
+                    file_contents[file_path_str] = content
+
+                    ast_meta = parser.parse_file(path_obj)
+                    ast_dict = ast_meta.model_dump()
+                    ast_dict["file_path"] = file_path_str
+                    ast_data.append(ast_dict)
+
+                    graph_builder.add_file_node(file_path_str, {"language": ast_meta.language})
+
+                    for cls in ast_meta.classes:
+                        graph_builder.add_code_node(cls.name, "class", file_path_str)
+
+                    for func in ast_meta.functions:
+                        graph_builder.add_code_node(func.name, "function", file_path_str)
+
+                    for imp in ast_meta.imports:
+                        graph_builder.add_import_edge(file_path_str, imp)
+                except Exception:
+                    pass
+
+        # Graph stats
+        graph_stats = {
+            "nodes": graph_builder.graph.number_of_nodes(),
+            "edges": graph_builder.graph.number_of_edges(),
+        }
+
+        # 3. Security and Performance Auditors
+        security_auditor = SecurityAuditor()
+        secrets_flags = security_auditor.scan_secrets(file_contents)
+        crypto_flags = security_auditor.scan_weak_crypto(ast_data)
+        security_threats = secrets_flags + crypto_flags
+
+        performance_auditor = PerformanceAuditor(file_contents=file_contents)
+        performance_bottlenecks = performance_auditor.detect_anti_patterns(ast_data)
+
+        # Build context
+        missing_secrets = secrets_info.get("missing_keys", [])
+        secrets_warnings = [secrets_info["warning"]] if secrets_info.get("warning") else []
+
+        context = {
+            "graph_stats": graph_stats,
+            "stack_info": stack_info,
+            "missing_secrets": missing_secrets,
+            "secrets_warnings": secrets_warnings,
+            "security_threats": security_threats,
+            "performance_bottlenecks": performance_bottlenecks,
+        }
+
         coordinator = AgentCoordinator(ollama_manager=ollama_mgr, model=model)
-        
+
         console.print("[bold blue]Starting Repository Audit Crew...[/bold blue]")
-        
-        # Use rich to print a spinner/status message
+
         with console.status("[bold green]Agents are analyzing the repository...[/bold green]") as status:
             try:
-                results = await coordinator.run_audit(mock_context)
+                results = await coordinator.run_audit(context)
             except Exception as e:
                 console.print()
                 console.print(
@@ -847,7 +931,7 @@ def audit_cmd() -> None:
                     )
                 )
                 raise typer.Exit(code=1)
-                
+
         # Print results in Panels
         console.print()
         console.print(
@@ -1242,6 +1326,7 @@ def docs_cmd(
         graph_builder = KnowledgeGraphBuilder()
         ast_classes: list[dict[str, Any]] = []
         total_files = 0
+        total_directories = 0
         detected_languages: set[str] = set()
         file_contents: dict[str, str] = {}
         ast_data: list[dict[str, Any]] = []
@@ -1261,12 +1346,18 @@ def docs_cmd(
 
         with console.status("[bold green]Analyzing repository structure and AST...[/bold green]") as status:
             for path_obj in target_dir.rglob("*"):
-                if not path_obj.is_file():
-                    continue
-
                 relative_path = path_obj.relative_to(target_dir)
                 if any(part in exclude_dirs for part in relative_path.parts):
                     continue
+
+                if path_obj.is_dir():
+                    total_directories += 1
+                    continue
+
+                if not path_obj.is_file():
+                    continue
+
+                total_files += 1
 
                 if path_obj.suffix.lower() not in supported_extensions:
                     continue
@@ -1279,7 +1370,6 @@ def docs_cmd(
                     file_contents[file_path_str] = content
 
                     ast_meta = parser.parse_file(path_obj)
-                    total_files += 1
                     detected_languages.add(ast_meta.language)
 
                     # Populate AST data for auditors
@@ -1389,10 +1479,11 @@ def docs_cmd(
                     else:
                         console.print(f"[bold yellow]Warning:[/bold yellow] Model '{settings.DEFAULT_MODEL}' not found. Attempting generation anyway.")
 
-                mock_context = {
+                context = {
                     "repo_stats": {
                         "repo_name": target_dir.name,
                         "total_files": total_files,
+                        "total_directories": total_directories,
                         "total_classes": len(ast_classes),
                         "graph_nodes": graph_stats.get("node_count", 0),
                         "graph_edges": graph_stats.get("edge_count", 0),
@@ -1403,7 +1494,7 @@ def docs_cmd(
 
                 agent = DocumentationAgent(ollama_manager=ollama_mgr, model=model)
                 with console.status("[bold green]Generating wiki documentation via Ollama...[/bold green]") as status:
-                    wiki_text = await agent.analyze(mock_context)
+                    wiki_text = await agent.analyze(context)
 
                 with open(wiki_path, "w", encoding="utf-8") as f:
                     f.write(wiki_text)

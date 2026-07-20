@@ -22,13 +22,21 @@ export const WorkflowExplorer: React.FC = () => {
         const res = await fetch("http://localhost:8000/api/v1/workflows");
         if (res.ok) {
           const data = await res.json();
-          setWorkflows(data.workflows || []);
-          if (data.workflows && data.workflows.length > 0) {
-            setSelectedWorkflowId(data.workflows[0].id);
+          const list = data.workflows || [];
+          setWorkflows(list);
+          if (list.length > 0) {
+            setSelectedWorkflowId(list[0].id);
+          } else {
+            setSelectedWorkflowId("");
           }
+        } else {
+          setWorkflows([]);
+          setSelectedWorkflowId("");
         }
       } catch (err) {
         console.error("Failed to load workflows:", err);
+        setWorkflows([]);
+        setSelectedWorkflowId("");
       } finally {
         setLoading(false);
       }
@@ -101,6 +109,10 @@ export const WorkflowExplorer: React.FC = () => {
             <div className="p-8 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
               <RefreshCw className="w-4 h-4 animate-spin" /> Loading workflows...
             </div>
+          ) : workflows.length === 0 ? (
+            <div className="p-4 text-center text-xs text-zinc-500 italic border border-zinc-200 dark:border-zinc-800 rounded-lg">
+              No workflows recorded. Use the Trace Custom Action tool below to generate a sequence diagram.
+            </div>
           ) : (
             <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
               {workflows.map((wf) => (
@@ -170,7 +182,7 @@ export const WorkflowExplorer: React.FC = () => {
             </>
           ) : (
             <div className="p-12 text-center text-xs text-zinc-500 border border-dashed border-zinc-300 dark:border-zinc-800 rounded-xl">
-              No workflow selected
+              No workflows recorded. Use the Trace Custom Action tool below to generate a sequence diagram.
             </div>
           )}
         </div>

@@ -54,144 +54,14 @@ export interface PerformanceAuditItem {
   recommendation?: string;
 }
 
-// Fallback high-fidelity sample data based on Repollama repo engines
-const DEFAULT_DEBT_ITEMS: TechnicalDebtItem[] = [
-  {
-    file: "backend/repollama/cli.py",
-    coupling: 28,
-    complexity: 42,
-    churn: 35,
-    score: 96,
-    severity: "High"
-  },
-  {
-    file: "backend/repollama/main.py",
-    coupling: 22,
-    complexity: 38,
-    churn: 29,
-    score: 88,
-    severity: "High"
-  },
-  {
-    file: "backend/repollama/engines/watcher.py",
-    coupling: 18,
-    complexity: 25,
-    churn: 19,
-    score: 82,
-    severity: "High"
-  },
-  {
-    file: "backend/repollama/engines/graph_builder.py",
-    coupling: 15,
-    complexity: 20,
-    churn: 14,
-    score: 74,
-    severity: "Medium"
-  },
-  {
-    file: "backend/repollama/engines/ast_parser.py",
-    coupling: 12,
-    complexity: 18,
-    churn: 11,
-    score: 65,
-    severity: "Medium"
-  },
-  {
-    file: "frontend/src/features/dashboard/Dashboard.tsx",
-    coupling: 10,
-    complexity: 15,
-    churn: 12,
-    score: 58,
-    severity: "Medium"
-  },
-  {
-    file: "backend/repollama/database/vector_store.py",
-    coupling: 8,
-    complexity: 12,
-    churn: 7,
-    score: 42,
-    severity: "Low"
-  },
-  {
-    file: "backend/repollama/engines/git_miner.py",
-    coupling: 6,
-    complexity: 9,
-    churn: 5,
-    score: 35,
-    severity: "Low"
-  }
-];
-
-const DEFAULT_SECURITY_ITEMS: SecurityAuditItem[] = [
-  {
-    file: "backend/repollama/core/config.py",
-    issue: "Hardcoded API key fallback detected in settings",
-    severity: "High",
-    line: 24,
-    remediation: "Inject secret via environment variables or secret store (KMS/Vault) rather than hardcoded string literal."
-  },
-  {
-    file: "backend/repollama/engines/security_auditor.py",
-    issue: "Usage of HS256 without proper key management validation",
-    severity: "Medium",
-    line: 104,
-    remediation: "Enforce asymmetric algorithms (RS256/ES256) or strict KMS key rotation for token signatures."
-  },
-  {
-    file: "backend/repollama/database/auth_handler.py",
-    issue: "Legacy MD5 hash used for temporary session verification",
-    severity: "Medium",
-    line: 45,
-    remediation: "Upgrade legacy hashing algorithm from MD5 to SHA-256 or Argon2id."
-  },
-  {
-    file: "frontend/src/context/AnalysisContext.tsx",
-    issue: "Unsanitized direct query parameter in EventSource URL string",
-    severity: "Low",
-    line: 237,
-    remediation: "Sanitize workspace path input before embedding into URI query string parameters."
-  }
-];
-
-const DEFAULT_PERFORMANCE_ITEMS: PerformanceAuditItem[] = [
-  {
-    file: "backend/repollama/cli.py",
-    issue: "Bloated function (845 lines)",
-    severity: "Low",
-    target: "cli_app",
-    recommendation: "Decompose CLI command handlers into modular subcommand controllers to reduce cyclomatic complexity."
-  },
-  {
-    file: "backend/repollama/engines/git_miner.py",
-    issue: "Potential N+1 query loop in commit extraction",
-    severity: "Medium",
-    target: "get_file_churn",
-    recommendation: "Batch git log queries using single rev-list process invocation instead of iterating per file path."
-  },
-  {
-    file: "backend/repollama/engines/performance_auditor.py",
-    issue: "Uncached repeated file read inside AST scan loop",
-    severity: "Medium",
-    target: "detect_anti_patterns",
-    recommendation: "Pass pre-loaded in-memory file dictionary to avoid redundant disk I/O operations."
-  },
-  {
-    file: "frontend/src/features/dashboard/Dashboard.tsx",
-    issue: "Bloated component (305 lines)",
-    severity: "Low",
-    target: "Dashboard",
-    recommendation: "Extract widget panels into memoized subcomponents to prevent unnecessary re-render passes."
-  }
-];
-
 export const EngineeringIntelligence: React.FC = () => {
   const { repoPath } = useAnalysis();
 
   const [activeTab, setActiveTab] = useState<"debt" | "security" | "performance">("debt");
   const [loading, setLoading] = useState<boolean>(false);
-  const [debtItems, setDebtItems] = useState<TechnicalDebtItem[]>(DEFAULT_DEBT_ITEMS);
-  const [securityItems, setSecurityItems] = useState<SecurityAuditItem[]>(DEFAULT_SECURITY_ITEMS);
-  const [performanceItems, setPerformanceItems] = useState<PerformanceAuditItem[]>(DEFAULT_PERFORMANCE_ITEMS);
+  const [debtItems, setDebtItems] = useState<TechnicalDebtItem[]>([]);
+  const [securityItems, setSecurityItems] = useState<SecurityAuditItem[]>([]);
+  const [performanceItems, setPerformanceItems] = useState<PerformanceAuditItem[]>([]);
 
   // Search & Filter state
   const [globalFilter, setGlobalFilter] = useState<string>("");
@@ -205,7 +75,7 @@ export const EngineeringIntelligence: React.FC = () => {
 
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
-  // Fetch real audit data from backend if available
+  // Fetch real audit data from backend
   const fetchIntelligenceData = async () => {
     setLoading(true);
     try {
@@ -213,7 +83,7 @@ export const EngineeringIntelligence: React.FC = () => {
       const debtRes = await fetch(debtUrl);
       if (debtRes.ok) {
         const debtData = await debtRes.json();
-        if (debtData.results && debtData.results.length > 0) {
+        if (debtData.results && Array.isArray(debtData.results) && debtData.results.length > 0) {
           const mapped: TechnicalDebtItem[] = debtData.results.map((r: any) => {
             const score = r.score ?? 0;
             const severity: "High" | "Medium" | "Low" =
@@ -228,42 +98,57 @@ export const EngineeringIntelligence: React.FC = () => {
             };
           });
           setDebtItems(mapped);
+        } else {
+          setDebtItems([]);
         }
+      } else {
+        setDebtItems([]);
       }
 
       const auditUrl = `http://localhost:8000/api/v1/intelligence/audits?path=${encodeURIComponent(repoPath || "")}`;
       const auditRes = await fetch(auditUrl);
       if (auditRes.ok) {
         const auditData = await auditRes.json();
-        if (auditData.security && auditData.security.length > 0) {
+        if (auditData.security && Array.isArray(auditData.security) && auditData.security.length > 0) {
           setSecurityItems(
             auditData.security.map((s: any) => ({
               file: s.file,
               issue: s.issue,
-              severity: s.severity || (s.issue.includes("secret") ? "High" : "Medium"),
+              severity: s.severity || (s.issue?.includes("secret") ? "High" : "Medium"),
               line: s.line || 1,
-              remediation: s.issue.includes("secret")
+              remediation: s.remediation || (s.issue?.includes("secret")
                 ? "Move secret key to environment variable or KMS."
-                : "Upgrade algorithm to SHA-256 / AES-GCM or enforce key rotation."
+                : "Upgrade algorithm to SHA-256 / AES-GCM or enforce key rotation.")
             }))
           );
+        } else {
+          setSecurityItems([]);
         }
-        if (auditData.performance && auditData.performance.length > 0) {
+
+        if (auditData.performance && Array.isArray(auditData.performance) && auditData.performance.length > 0) {
           setPerformanceItems(
             auditData.performance.map((p: any) => ({
               file: p.file,
               issue: p.issue,
-              severity: p.severity || (p.issue.includes("N+1") ? "Medium" : "Low"),
+              severity: p.severity || (p.issue?.includes("N+1") ? "Medium" : "Low"),
               target: p.target || p.target_function || "Function",
-              recommendation: p.issue.includes("N+1")
+              recommendation: p.recommendation || (p.issue?.includes("N+1")
                 ? "Batch DB query execution outside loop body."
-                : "Split long function into focused helper functions."
+                : "Split long function into focused helper functions.")
             }))
           );
+        } else {
+          setPerformanceItems([]);
         }
+      } else {
+        setSecurityItems([]);
+        setPerformanceItems([]);
       }
     } catch (err) {
-      console.warn("Backend intelligence fetch error, using built-in engine findings:", err);
+      console.warn("Backend intelligence fetch error:", err);
+      setDebtItems([]);
+      setSecurityItems([]);
+      setPerformanceItems([]);
     } finally {
       setLoading(false);
     }
@@ -658,7 +543,7 @@ export const EngineeringIntelligence: React.FC = () => {
                 {table.getRowModel().rows.length === 0 ? (
                   <tr>
                     <td colSpan={columns.length} className="text-center py-8 text-zinc-400 italic">
-                      No files matching the technical debt filter criteria.
+                      No audit data available. Run an engineering scan.
                     </td>
                   </tr>
                 ) : (
@@ -716,7 +601,7 @@ export const EngineeringIntelligence: React.FC = () => {
           <div className="space-y-3">
             {filteredSecurity.length === 0 ? (
               <div className="p-8 text-center border border-zinc-200 dark:border-zinc-900 rounded-lg bg-white dark:bg-zinc-950/40 text-zinc-400 italic">
-                No security vulnerabilities matching search criteria.
+                No audit data available. Run an engineering scan.
               </div>
             ) : (
               filteredSecurity.map((item, idx) => (
@@ -812,7 +697,7 @@ export const EngineeringIntelligence: React.FC = () => {
           <div className="space-y-3">
             {filteredPerformance.length === 0 ? (
               <div className="p-8 text-center border border-zinc-200 dark:border-zinc-900 rounded-lg bg-white dark:bg-zinc-950/40 text-zinc-400 italic">
-                No performance bottlenecks found matching search parameters.
+                No audit data available. Run an engineering scan.
               </div>
             ) : (
               filteredPerformance.map((item, idx) => (

@@ -712,6 +712,7 @@ async def get_audit_reports(path: Optional[str] = Query(None, description="Path 
 @app.get("/api/v1/videos")
 async def list_videos() -> dict[str, Any]:
     """Scan `.repollama_data/videos/` and return available video files."""
+    import os
     video_dir = Path(".repollama_data/videos")
     if not video_dir.exists():
         video_dir.mkdir(parents=True, exist_ok=True)
@@ -721,12 +722,13 @@ async def list_videos() -> dict[str, Any]:
 
     for p in video_dir.glob("*"):
         if p.is_file() and p.suffix.lower() in supported_exts:
+            size_bytes = os.path.getsize(p)
             stat = p.stat()
             videos.append({
                 "filename": p.name,
                 "title": p.stem.replace("_", " ").title(),
-                "url": f"/api/v1/videos/stream/{p.name}",
-                "size_bytes": stat.st_size,
+                "url": f"/api/v1/videos/{p.name}",
+                "size_bytes": size_bytes,
                 "created_at": stat.st_mtime,
                 "format": p.suffix.lstrip(".").lower(),
             })
@@ -738,14 +740,17 @@ async def list_videos() -> dict[str, Any]:
 from fastapi.responses import FileResponse
 
 
+@app.get("/api/v1/videos/{filename}")
 @app.get("/api/v1/videos/stream/{filename}")
-async def stream_video(filename: str):
-    """Stream video file for playback."""
-    video_path = Path(".repollama_data/videos") / filename
+async def get_video(filename: str):
+    """Serve video file over HTTP for playback."""
+    safe_filename = Path(filename).name
+    video_path = Path(".repollama_data/videos") / safe_filename
     if not video_path.exists() or not video_path.is_file():
-        return {"error": "Video not found"}
-    media_type = "video/webm" if filename.endswith(".webm") else "video/mp4"
-    return FileResponse(path=video_path, media_type=media_type, filename=filename)
+        raise HTTPException(status_code=404, detail="Video file not found")
+    media_type = "video/webm" if safe_filename.endswith(".webm") else "video/mp4"
+    return FileResponse(path=video_path, media_type=media_type, filename=safe_filename)
+
 
 
 # ---------------------------------------------------------------------------
